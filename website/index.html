@@ -15,6 +15,13 @@
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@AGIHoldings">
   <link rel="stylesheet" href="/styles.css">
+  <script>
+    // Set theme immediately to prevent flash
+    (function() {
+      var t = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
 </head>
 <body>
   <nav class="nav">

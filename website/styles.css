@@ -33,6 +33,14 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Prevent FOUC - hide until theme is set */
+html:not([data-theme]) {
+  visibility: hidden;
+}
+html[data-theme] {
+  visibility: visible;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
