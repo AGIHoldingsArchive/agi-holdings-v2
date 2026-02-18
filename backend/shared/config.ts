@@ -4,6 +4,13 @@ export const CONFIG = {
   // Wallets
   TREASURY_ADDRESS: '0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D',
   MASTER_ADDRESS: '0xF9b19141aA38C77086468e95CA435332b3e51e77',
+  BANKR_WALLET: '0x6e58ab81a36ce48250a6162d2a28ad852d48397d', // Ignore for revenue
+  
+  // Wallets to NEVER treat as revenue (fees, internal transfers, etc.)
+  IGNORED_WALLETS: [
+    '0x6e58ab81a36ce48250a6162d2a28ad852d48397d', // Bankr - sends fees
+    '0xF9b19141aA38C77086468e95CA435332b3e51e77', // Master wallet
+  ],
   
   // Token addresses on Base
   USDC_ADDRESS: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',

@@ -196,6 +196,13 @@ async function scanViaSubgraph(): Promise<Application[]> {
       
       const fromAddress = transfer.from.toLowerCase();
       
+      // Skip ignored wallets (Bankr, Master, etc.) - these are NOT revenue
+      if (CONFIG.IGNORED_WALLETS.map(w => w.toLowerCase()).includes(fromAddress)) {
+        console.log(`Skipping transfer from ignored wallet: ${fromAddress}`);
+        await saveProcessedTx(transfer.txHash);
+        continue;
+      }
+      
       // Check if this is revenue share from a funded agent
       if (isFundedAgent(fromAddress)) {
         console.log(`Revenue share detected from funded agent: ${fromAddress}`);
