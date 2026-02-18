@@ -1,0 +1,53 @@
+type Treasury @entity(immutable: false) {
+  id: ID!
+  ethBalance: BigInt!
+  usdcBalance: BigInt!
+  wethBalance: BigInt!
+  totalUSD: BigInt!
+  totalInvested: BigInt!
+  totalRevenueReceived: BigInt!
+  agentsFunded: Int!
+  lastUpdated: BigInt!
+}
+
+type FundedAgent @entity(immutable: false) {
+  id: ID!
+  wallet: Bytes!
+  fundedAmount: BigInt!
+  fundedAt: BigInt!
+  txHash: Bytes!
+  totalRevenuePaid: BigInt!
+  lastPayment: BigInt
+  isActive: Boolean!
+}
+
+type RevenuePayment @entity(immutable: true) {
+  id: ID!
+  from: Bytes!
+  amount: BigInt!
+  token: String!
+  timestamp: BigInt!
+  txHash: Bytes!
+  agent: FundedAgent
+}
+
+type Transfer @entity(immutable: true) {
+  id: ID!
+  from: Bytes!
+  to: Bytes!
+  amount: BigInt!
+  token: String!
+  timestamp: BigInt!
+  txHash: Bytes!
+  isIncoming: Boolean!
+  isOutgoing: Boolean!
+}
+
+type DailyStat @entity(immutable: false) {
+  id: ID!
+  date: String!
+  inflow: BigInt!
+  outflow: BigInt!
+  netChange: BigInt!
+  treasuryBalance: BigInt!
+}

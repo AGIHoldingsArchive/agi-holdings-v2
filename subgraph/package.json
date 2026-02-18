@@ -1,0 +1,18 @@
+{
+  "name": "agi-holdings-subgraph",
+  "version": "1.0.0",
+  "description": "The Graph subgraph for AGI Holdings treasury tracking",
+  "scripts": {
+    "codegen": "graph codegen",
+    "build": "graph build",
+    "deploy": "graph deploy --studio agi-holdings",
+    "deploy:hosted": "graph deploy --product hosted-service agiholdingsarchive/agi-holdings",
+    "create-local": "graph create --node http://localhost:8020/ agi-holdings",
+    "remove-local": "graph remove --node http://localhost:8020/ agi-holdings",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 agi-holdings"
+  },
+  "dependencies": {
+    "@graphprotocol/graph-cli": "^0.71.0",
+    "@graphprotocol/graph-ts": "^0.32.0"
+  }
+}

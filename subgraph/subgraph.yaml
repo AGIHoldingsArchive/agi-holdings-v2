@@ -1,0 +1,47 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: Treasury
+    network: base
+    source:
+      address: "0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D"
+      abi: ERC20
+      startBlock: 26000000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+        - Treasury
+        - FundedAgent
+        - RevenuePayment
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
+      file: ./src/mapping.ts
+  - kind: ethereum
+    name: TreasuryETH
+    network: base
+    source:
+      address: "0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D"
+      abi: ERC20
+      startBlock: 26000000
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - ETHTransfer
+        - Treasury
+      abis:
+        - name: ERC20
+          file: ./abis/ERC20.json
+      blockHandlers:
+        - handler: handleBlock
+      file: ./src/mapping.ts
