@@ -2,7 +2,7 @@
 
 const CONFIG = {
   TREASURY: '0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D',
-  SUBGRAPH: 'https://api.studio.thegraph.com/query/1742294/agi-holdings/v1.0.0',
+  SUBGRAPH: 'https://api.studio.thegraph.com/query/1742294/agi-holdings/v1.1.0',
   BLOCKSCOUT: 'https://base.blockscout.com/api/v2',
   COINGECKO: 'https://api.coingecko.com/api/v3',
 };
