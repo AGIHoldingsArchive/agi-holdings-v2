@@ -50,10 +50,52 @@ export function initializeExecutor(
   console.log(`Treasury wallet: ${wallet.address}`);
 }
 
+// Uniswap V3 SwapRouter on Base
+const SWAP_ROUTER = '0x2626664c2603336E57B271c5C0b26F421741e481';
+const WETH = '0x4200000000000000000000000000000000000006';
+
+const SWAP_ROUTER_ABI = [
+  'function exactInputSingle((address tokenIn, address tokenOut, uint24 fee, address recipient, uint256 amountIn, uint256 amountOutMinimum, uint160 sqrtPriceLimitX96)) external payable returns (uint256 amountOut)',
+];
+
 /**
- * Check if treasury has sufficient USDC balance
+ * Swap ETH to USDC
  */
-async function checkBalance(amount: number): Promise<boolean> {
+async function swapETHtoUSDC(amountETH: bigint): Promise<boolean> {
+  console.log(`Swapping ${ethers.formatEther(amountETH)} ETH to USDC...`);
+  
+  try {
+    const swapRouter = new ethers.Contract(SWAP_ROUTER, SWAP_ROUTER_ABI, wallet);
+    
+    const params = {
+      tokenIn: WETH,
+      tokenOut: CONFIG.USDC_ADDRESS,
+      fee: 500, // 0.05% pool
+      recipient: wallet.address,
+      amountIn: amountETH,
+      amountOutMinimum: 0,
+      sqrtPriceLimitX96: 0,
+    };
+    
+    const tx = await swapRouter.exactInputSingle(params, {
+      value: amountETH,
+      gasLimit: 300000,
+    });
+    
+    console.log(`Swap TX: ${tx.hash}`);
+    await tx.wait();
+    console.log('ETH → USDC swap complete');
+    return true;
+  } catch (e: any) {
+    console.error(`Swap failed: ${e.message}`);
+    return false;
+  }
+}
+
+/**
+ * Check if treasury has sufficient USDC balance, swap from ETH if needed
+ */
+async function ensureUSDCBalance(amount: number): Promise<boolean> {
   const decimals = await usdc.decimals();
   const balance = await usdc.balanceOf(wallet.address);
   const required = ethers.parseUnits(amount.toString(), decimals);
@@ -61,7 +103,40 @@ async function checkBalance(amount: number): Promise<boolean> {
   console.log(`Treasury USDC balance: ${ethers.formatUnits(balance, decimals)}`);
   console.log(`Required for funding: ${amount}`);
   
-  return balance >= required;
+  if (balance >= required) {
+    return true;
+  }
+  
+  // Not enough USDC, check ETH balance
+  const ethBalance = await provider.getBalance(wallet.address);
+  console.log(`Treasury ETH balance: ${ethers.formatEther(ethBalance)}`);
+  
+  // Calculate how much ETH we need (add 10% buffer for slippage + gas)
+  const ethPrice = await getETHPrice();
+  const usdcNeeded = Number(ethers.formatUnits(required - balance, decimals));
+  const ethNeeded = (usdcNeeded / ethPrice) * 1.1;
+  const ethNeededWei = ethers.parseEther(ethNeeded.toFixed(6));
+  
+  console.log(`Need to swap ~${ethNeeded.toFixed(4)} ETH to get ${usdcNeeded} USDC`);
+  
+  if (ethBalance < ethNeededWei) {
+    console.error('Insufficient ETH balance for swap');
+    return false;
+  }
+  
+  // Swap ETH to USDC
+  const swapSuccess = await swapETHtoUSDC(ethNeededWei);
+  return swapSuccess;
+}
+
+async function getETHPrice(): Promise<number> {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd');
+    const data = await res.json();
+    return data.ethereum?.usd || 2000;
+  } catch {
+    return 2000; // Fallback
+  }
 }
 
 /**
@@ -73,9 +148,9 @@ async function sendFunding(
 ): Promise<string> {
   console.log(`Sending $${amount} USDC to ${recipientWallet}...`);
   
-  // Check balance first
-  if (!await checkBalance(amount)) {
-    throw new Error('Insufficient USDC balance in treasury');
+  // Ensure we have enough USDC (swap from ETH if needed)
+  if (!await ensureUSDCBalance(amount)) {
+    throw new Error('Insufficient funds in treasury (not enough USDC or ETH)');
   }
   
   const decimals = await usdc.decimals();
