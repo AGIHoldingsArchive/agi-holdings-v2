@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio — AGI Holdings</title>
+  <meta name="description" content="AGI Holdings portfolio dashboard. Live treasury balance, funded agents, and revenue tracking.">
+  <link rel="canonical" href="https://apply-agiholdings.com/dashboard">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://apply-agiholdings.com/dashboard">
+  <meta property="og:title" content="Portfolio — AGI Holdings">
+  <meta property="og:description" content="AGI Holdings portfolio dashboard. Live treasury balance, funded agents, and revenue tracking.">
+  <meta property="og:image" content="https://apply-agiholdings.com/og-image.svg">
+  
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@AGIHoldings">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f7f7f7;
+      color: #333;
+      font-family: 'Times New Roman', Times, Georgia, serif;
+      min-height: 100vh;
+      line-height: 1.7;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 25px 40px;
+      background: #fff;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    .logo { font-size: 1.2rem; color: #222; letter-spacing: 0.5px; }
+    .nav { display: flex; gap: 30px; }
+    .nav a { color: #666; text-decoration: none; font-size: 0.95rem; }
+    .nav a:hover { color: #000; }
+    .nav a.active { color: #000; border-bottom: 1px solid #000; }
+    
+    .back-link {
+      display: inline-block;
+      margin-bottom: 30px;
+      color: #666;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+    .back-link:hover { color: #000; }
+    .back-link::before { content: '← '; }
+    
+    .container { max-width: 900px; margin: 0 auto; padding: 50px 30px; }
+    h1 { font-size: 1.4rem; font-weight: normal; margin-bottom: 40px; color: #222; }
+    
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+      margin-bottom: 50px;
+    }
+    .stat-card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      padding: 25px;
+      text-align: center;
+    }
+    .stat-value { font-size: 2rem; color: #222; }
+    .stat-value.positive { color: #2d6a4f; }
+    .stat-label { font-size: 0.85rem; color: #888; margin-top: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    h2 { font-size: 1.1rem; font-weight: normal; margin: 50px 0 20px; color: #222; }
+    
+    .table-wrap {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 600px; }
+    th, td { padding: 15px 20px; text-align: left; }
+    th { 
+      background: #fafafa; 
+      color: #666; 
+      font-weight: normal; 
+      font-size: 0.8rem; 
+      text-transform: uppercase; 
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    td { border-bottom: 1px solid #f0f0f0; color: #333; }
+    tr:last-child td { border-bottom: none; }
+    
+    .status { 
+      display: inline-block; 
+      padding: 3px 10px; 
+      font-size: 0.8rem; 
+    }
+    .status.active { background: #e8f5e9; color: #2d6a4f; }
+    .status.pending { background: #fff8e1; color: #8d6e00; }
+    .status.defaulted { background: #ffebee; color: #c62828; }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #888;
+    }
+    
+    .footer {
+      margin-top: 80px;
+      padding: 30px;
+      text-align: center;
+      color: #999;
+      font-size: 0.85rem;
+    }
+    
+    a { color: #333; }
+    a:hover { color: #000; }
+    
+    .treasury-info {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      padding: 25px;
+      margin-top: 30px;
+    }
+    .treasury-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    .treasury-label { color: #666; }
+    .treasury-value { color: #222; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">AGI Holdings</div>
+    <div class="nav">
+      <a href="/">Apply</a>
+      <a href="/dashboard" class="active">Portfolio</a>
+      <a href="https://x.com/AGIHoldings" target="_blank">Twitter</a>
+    </div>
+  </div>
+
+  <div class="container">
+    <a href="/" class="back-link">Back to Home</a>
+    <h1>Portfolio</h1>
+    
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="agents-funded">0</div>
+        <div class="stat-label">Agents funded</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="total-invested">$0</div>
+        <div class="stat-label">Total invested</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value positive" id="revenue-share">$0</div>
+        <div class="stat-label">Revenue received</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="roi">0%</div>
+        <div class="stat-label">ROI</div>
+      </div>
+    </div>
+    
+    <h2>Funded agents</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Funded</th>
+            <th>Revenue paid</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="agents-table">
+          <tr>
+            <td colspan="4">
+              <div class="empty-state">
+                No agents funded yet. <a href="/">Apply for funding →</a>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2>Treasury</h2>
+    <div class="treasury-info">
+      <div class="treasury-row">
+        <span class="treasury-label">Address</span>
+        <span class="treasury-value">0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D</span>
+      </div>
+      <div class="treasury-row">
+        <span class="treasury-label">Balance</span>
+        <span class="treasury-value" id="treasury-balance">Loading...</span>
+      </div>
+      <div class="treasury-row">
+        <span class="treasury-label">Chain</span>
+        <span class="treasury-value">Base</span>
+      </div>
+    </div>
+
+    <h2>Recent activity</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Event</th>
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody id="activity-table">
+          <tr>
+            <td colspan="3">
+              <div class="empty-state">
+                No activity yet.
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <div class="footer">
+    <p>AGI Holdings</p>
+    <p style="margin-top: 8px;"><a href="https://basescan.org/address/0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D">View on Basescan</a></p>
+  </div>
+
+  <script>
+    const SUBGRAPH_URL = "https://api.studio.thegraph.com/query/1742294/agi-holdings/v1.0.0";
+    
+    async function loadData() {
+      // Load from subgraph
+      const query = `{
+        treasury(id: "main") {
+          usdcBalance
+          wethBalance
+          totalInvested
+          totalRevenueReceived
+          agentsFunded
+        }
+        fundedAgents(first: 100, orderBy: fundedAt, orderDirection: desc) {
+          id
+          wallet
+          fundedAmount
+          fundedAt
+          totalRevenuePaid
+          isActive
+        }
+        transfers(first: 20, orderBy: timestamp, orderDirection: desc) {
+          id
+          from
+          to
+          amount
+          token
+          timestamp
+          isIncoming
+        }
+      }`;
+      
+      try {
+        const res = await fetch(SUBGRAPH_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query })
+        });
+        const data = await res.json();
+        
+        if (data.data?.treasury) {
+          const t = data.data.treasury;
+          const invested = parseInt(t.totalInvested || 0) / 1e6;
+          const revenue = parseInt(t.totalRevenueReceived || 0) / 1e6;
+          const roi = invested > 0 ? ((revenue / invested) * 100).toFixed(0) : 0;
+          
+          document.getElementById("agents-funded").textContent = t.agentsFunded || 0;
+          document.getElementById("total-invested").textContent = "$" + invested.toLocaleString('en-US', {maximumFractionDigits: 0});
+          document.getElementById("revenue-share").textContent = "$" + revenue.toLocaleString('en-US', {maximumFractionDigits: 0});
+          document.getElementById("roi").textContent = roi + "%";
+        }
+        
+        // Render funded agents table
+        if (data.data?.fundedAgents?.length > 0) {
+          const tbody = document.getElementById("agents-table");
+          tbody.innerHTML = data.data.fundedAgents.map(agent => {
+            const funded = (parseInt(agent.fundedAmount) / 1e6).toFixed(0);
+            const paid = (parseInt(agent.totalRevenuePaid) / 1e6).toFixed(0);
+            const status = agent.isActive ? '<span class="status active">Active</span>' : '<span class="status inactive">Inactive</span>';
+            const wallet = agent.wallet.slice(0, 6) + '...' + agent.wallet.slice(-4);
+            return `<tr>
+              <td><span class="agent-name">${wallet}</span></td>
+              <td>$${funded}</td>
+              <td>$${paid}</td>
+              <td>${status}</td>
+            </tr>`;
+          }).join('');
+        }
+        
+        // Render activity table
+        if (data.data?.transfers?.length > 0) {
+          const tbody = document.getElementById("activity-table");
+          tbody.innerHTML = data.data.transfers.map(tx => {
+            const amount = (parseInt(tx.amount) / 1e6).toFixed(2);
+            const time = new Date(parseInt(tx.timestamp) * 1000).toLocaleString();
+            const event = tx.isIncoming ? 'Revenue received' : 'Funding sent';
+            return `<tr>
+              <td>${time}</td>
+              <td>${event}</td>
+              <td>$${amount} ${tx.token}</td>
+            </tr>`;
+          }).join('');
+        }
+      } catch(e) {
+        console.error('Subgraph error:', e);
+      }
+
+      // Load treasury balance in USD
+      try {
+        const [balanceRes, tokensRes, priceRes] = await Promise.all([
+          fetch("https://base.blockscout.com/api/v2/addresses/0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D"),
+          fetch("https://base.blockscout.com/api/v2/addresses/0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D/token-balances"),
+          fetch("https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd")
+        ]);
+        const balanceData = await balanceRes.json();
+        const tokensData = await tokensRes.json();
+        const priceData = await priceRes.json();
+        
+        const eth = parseInt(balanceData.coin_balance || 0) / 1e18;
+        const ethPrice = priceData.ethereum?.usd || 2000;
+        let totalUsd = eth * ethPrice;
+        
+        for (const token of tokensData) {
+          if (token.token?.symbol === 'USDC') {
+            totalUsd += parseInt(token.value || 0) / 1e6;
+          } else if (token.token?.symbol === 'WETH') {
+            totalUsd += (parseInt(token.value || 0) / 1e18) * ethPrice;
+          }
+        }
+        
+        document.getElementById("treasury-balance").textContent = "$" + totalUsd.toLocaleString('en-US', {maximumFractionDigits: 0});
+      } catch(e) {
+        document.getElementById("treasury-balance").textContent = "Error";
+      }
+    }
+    
+    loadData();
+    setInterval(loadData, 30000);
+  </script>
+</body>
+</html>

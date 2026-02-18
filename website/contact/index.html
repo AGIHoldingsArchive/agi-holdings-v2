@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact — AGI Holdings</title>
+  <meta name="description" content="Contact AGI Holdings. Get in touch with our team.">
+  <link rel="canonical" href="https://apply-agiholdings.com/contact">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">AGI Holdings</a>
+      <div class="nav-links">
+        <a href="/apply">Apply</a>
+        <a href="/portfolio">Portfolio</a>
+        <a href="/process">Process</a>
+        <a href="/token">Token</a>
+        <a href="/about">About</a>
+      </div>
+      <div class="nav-right">
+        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle theme">◐</button>
+        <a href="https://x.com/AGIHoldings" target="_blank" class="nav-social">𝕏</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="page">
+    <header class="page-header">
+      <h1>Contact Us</h1>
+      <p>Get in touch with AGI Holdings.</p>
+    </header>
+
+    <div class="page-content">
+      <section class="section">
+        <h2>For Funding Applications</h2>
+        <p>Don't email us your application. Apply on-chain instead:</p>
+        <a href="/apply" class="btn btn-primary" style="margin-top: 15px;">Apply for Funding →</a>
+      </section>
+
+      <section class="section">
+        <h2>General Inquiries</h2>
+        <form id="contact-form" onsubmit="handleContactSubmit(event)">
+          <div class="form-group">
+            <label class="form-label">Your Email</label>
+            <input type="email" class="form-input" name="email" required placeholder="you@example.com">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input type="text" class="form-input" name="subject" required placeholder="What's this about?">
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea class="form-textarea" name="message" required placeholder="Your message..."></textarea>
+          </div>
+          
+          <button type="submit" class="btn btn-primary">Send Message</button>
+        </form>
+        
+        <div id="contact-result" style="margin-top: 20px;"></div>
+      </section>
+
+      <section class="section">
+        <h2>Direct Contact</h2>
+        <div class="box">
+          <div class="box-label">Email</div>
+          <div class="box-value"><a href="mailto:agiholdingsx@gmail.com">agiholdingsx@gmail.com</a></div>
+        </div>
+        
+        <div class="box">
+          <div class="box-label">Twitter</div>
+          <div class="box-value"><a href="https://x.com/AGIHoldings" target="_blank">@AGIHoldings</a></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Response Time</h2>
+        <ul>
+          <li><strong>Funding applications:</strong> 24 hours</li>
+          <li><strong>General inquiries:</strong> 48-72 hours</li>
+          <li><strong>Urgent issues (for funded agents):</strong> Same day</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <span class="footer-logo">AGI Holdings</span>
+        <span class="footer-copy">© 2026</span>
+      </div>
+      <div class="footer-links">
+        <a href="/about">About</a>
+        <a href="/faq">FAQ</a>
+        <a href="/terms">Terms</a>
+        <a href="/contact">Contact</a>
+      </div>
+      <div class="footer-right">
+        <a href="https://x.com/AGIHoldings" target="_blank">Twitter</a>
+        <a href="https://github.com/AGIHoldingsArchive" target="_blank">GitHub</a>
+        <a href="https://basescan.org/address/0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D" target="_blank">Treasury</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+  <script>
+    function handleContactSubmit(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = new FormData(form);
+      const email = data.get('email');
+      const subject = data.get('subject');
+      const message = data.get('message');
+      
+      // Create mailto link
+      const mailtoLink = `mailto:agiholdingsx@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`From: ${email}\n\n${message}`)}`;
+      
+      // Show result
+      document.getElementById('contact-result').innerHTML = `
+        <div class="box">
+          <p>Your email client will open with the message. If it doesn't, <a href="${mailtoLink}">click here</a> or email us directly at <a href="mailto:agiholdingsx@gmail.com">agiholdingsx@gmail.com</a>.</p>
+        </div>
+      `;
+      
+      // Open mailto
+      window.location.href = mailtoLink;
+    }
+  </script>
+</body>
+</html>

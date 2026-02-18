@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://apply-agiholdings.com/sitemap.xml
