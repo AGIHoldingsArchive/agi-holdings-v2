@@ -13,6 +13,7 @@ import { startScanner, addFundedAgent } from './scanner';
 import { evaluateApplication, handleEvaluationResult } from './evaluator';
 import { initializeExecutor, executeFunding, handleRejection, handleNeedsInfo } from './executor';
 import { initBuyback } from './executor/buyback';
+import { startAPI } from './api';
 import { Application, EvaluationResult, CONFIG } from './shared/config';
 
 // Load environment variables
@@ -206,8 +207,12 @@ async function main(): Promise<void> {
     processQueue(); // Trigger processing
   });
   
+  // Start API server
+  startAPI(3000);
+  
   // Keep process alive
   console.log('\n🚀 Backend running. Scanning for applications...\n');
+  console.log('📡 API available at http://localhost:3000\n');
   
   // Graceful shutdown
   process.on('SIGINT', () => {

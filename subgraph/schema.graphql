@@ -51,3 +51,19 @@ type DailyStat @entity(immutable: false) {
   netChange: BigInt!
   treasuryBalance: BigInt!
 }
+
+type Application @entity(immutable: false) {
+  id: ID!
+  applicantWallet: Bytes!
+  txHash: Bytes!
+  timestamp: BigInt!
+  status: String!
+  fundedAgent: FundedAgent
+}
+
+type Rejection @entity(immutable: true) {
+  id: ID!
+  applicantWallet: Bytes!
+  reason: String
+  timestamp: BigInt!
+}

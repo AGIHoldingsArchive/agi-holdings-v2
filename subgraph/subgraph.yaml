@@ -2,11 +2,12 @@ specVersion: 0.0.5
 schema:
   file: ./schema.graphql
 dataSources:
+  # Watch USDC contract for transfers involving Treasury
   - kind: ethereum
-    name: Treasury
+    name: USDC
     network: base
     source:
-      address: "0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D"
+      address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
       abi: ERC20
       startBlock: 26000000
     mapping:
@@ -18,6 +19,9 @@ dataSources:
         - Treasury
         - FundedAgent
         - RevenuePayment
+        - DailyStat
+        - Application
+        - Rejection
       abis:
         - name: ERC20
           file: ./abis/ERC20.json
@@ -25,11 +29,12 @@ dataSources:
         - event: Transfer(indexed address,indexed address,uint256)
           handler: handleTransfer
       file: ./src/mapping.ts
+  # Watch WETH contract for transfers involving Treasury
   - kind: ethereum
-    name: TreasuryETH
+    name: WETH
     network: base
     source:
-      address: "0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D"
+      address: "0x4200000000000000000000000000000000000006"
       abi: ERC20
       startBlock: 26000000
     mapping:
@@ -37,11 +42,12 @@ dataSources:
       apiVersion: 0.0.7
       language: wasm/assemblyscript
       entities:
-        - ETHTransfer
+        - Transfer
         - Treasury
       abis:
         - name: ERC20
           file: ./abis/ERC20.json
-      blockHandlers:
-        - handler: handleBlock
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleTransfer
       file: ./src/mapping.ts
