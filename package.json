@@ -1,0 +1,12 @@
+{
+  "name": "agi-holdings",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "cd backend && npm install && npm start",
+    "install": "cd backend && npm install"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
