@@ -9,10 +9,11 @@
  */
 
 import { config } from 'dotenv';
-import { startScanner } from './scanner';
+import { startScanner, addFundedAgent } from './scanner';
 import { evaluateApplication, handleEvaluationResult } from './evaluator';
 import { initializeExecutor, executeFunding, handleRejection, handleNeedsInfo } from './executor';
-import { Application, EvaluationResult } from './shared/config';
+import { initBuyback } from './executor/buyback';
+import { Application, EvaluationResult, CONFIG } from './shared/config';
 
 // Load environment variables
 config();
@@ -48,6 +49,42 @@ const processingQueue: Application[] = [];
 let isProcessing = false;
 
 /**
+ * Load existing funded agents from subgraph
+ */
+async function loadFundedAgents(): Promise<void> {
+  console.log('Loading funded agents from subgraph...');
+  
+  try {
+    const query = `{
+      fundedAgents(first: 1000) {
+        wallet
+        isActive
+      }
+    }`;
+    
+    const res = await fetch(CONFIG.SUBGRAPH_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    
+    const data = await res.json();
+    
+    if (data.data?.fundedAgents) {
+      for (const agent of data.data.fundedAgents) {
+        if (agent.isActive) {
+          addFundedAgent(agent.wallet);
+          console.log(`Loaded funded agent: ${agent.wallet}`);
+        }
+      }
+      console.log(`Loaded ${data.data.fundedAgents.length} funded agents`);
+    }
+  } catch (e) {
+    console.error('Failed to load funded agents:', e);
+  }
+}
+
+/**
  * Process a single application through the full pipeline
  */
 async function processApplication(app: Application): Promise<void> {
@@ -74,6 +111,9 @@ async function processApplication(app: Application): Promise<void> {
         const funding = await executeFunding(app, result);
         if (funding.success) {
           console.log(`✅ Funding successful: ${funding.txHash}`);
+          // Add to funded agents list for revenue tracking
+          addFundedAgent(app.data.wallet);
+          console.log(`Added ${app.data.wallet} to funded agents for revenue tracking`);
         } else {
           console.error(`❌ Funding failed: ${funding.error}`);
         }
@@ -152,6 +192,12 @@ async function main(): Promise<void> {
       accessSecret: process.env.TWITTER_ACCESS_SECRET!,
     } : undefined
   );
+  
+  // Initialize buyback module
+  initBuyback(process.env.TREASURY_PRIVATE_KEY!);
+  
+  // Load existing funded agents from subgraph
+  await loadFundedAgents();
   
   // Start scanner
   await startScanner(async (app) => {

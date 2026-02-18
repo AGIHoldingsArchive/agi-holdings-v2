@@ -9,8 +9,20 @@
 
 import { ethers } from 'ethers';
 import { CONFIG, Application } from '../shared/config';
+import { initBuyback, processRevenueShare } from '../executor/buyback';
 
 const provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
+
+// Track funded agent wallets for revenue detection
+const fundedAgentWallets = new Set<string>();
+
+export function addFundedAgent(wallet: string): void {
+  fundedAgentWallets.add(wallet.toLowerCase());
+}
+
+export function isFundedAgent(wallet: string): boolean {
+  return fundedAgentWallets.has(wallet.toLowerCase());
+}
 
 // Track processed transactions to avoid duplicates
 const processedTxs = new Set<string>();
@@ -163,6 +175,7 @@ async function scanViaSubgraph(): Promise<Application[]> {
       txHash
       from
       amount
+      token
       timestamp
     }
   }`;
@@ -181,7 +194,19 @@ async function scanViaSubgraph(): Promise<Application[]> {
         continue;
       }
       
-      // Get full transaction to decode calldata
+      const fromAddress = transfer.from.toLowerCase();
+      
+      // Check if this is revenue share from a funded agent
+      if (isFundedAgent(fromAddress)) {
+        console.log(`Revenue share detected from funded agent: ${fromAddress}`);
+        const amount = BigInt(transfer.amount);
+        const token = transfer.token === 'USDC' ? 'USDC' : 'ETH';
+        await processRevenueShare(fromAddress, amount, token as 'ETH' | 'USDC');
+        await saveProcessedTx(transfer.txHash);
+        continue;
+      }
+      
+      // Otherwise, check if it's a new application
       const tx = await provider.getTransaction(transfer.txHash);
       if (!tx || !tx.data || tx.data === '0x') {
         continue;
