@@ -217,12 +217,17 @@ async function checkApplicationStatus(txHash) {
       return;
     }
     
-    // Check if funded (query subgraph for this wallet)
+    // Get the applicant wallet from the transaction
+    const applicantWallet = txData.from?.hash?.toLowerCase();
+    
+    // Check if this wallet was funded (query subgraph by wallet address)
     const query = `{
-      fundedAgents(where: { applicationTx: "${txHash}" }) {
+      fundedAgent(id: "${applicantWallet}") {
         id
         fundedAmount
         fundedAt
+        totalRevenuePaid
+        isActive
       }
     }`;
     
@@ -234,20 +239,29 @@ async function checkApplicationStatus(txHash) {
     
     const sgData = await sgRes.json();
     
-    if (sgData.data?.fundedAgents?.length > 0) {
-      const agent = sgData.data.fundedAgents[0];
+    if (sgData.data?.fundedAgent) {
+      const agent = sgData.data.fundedAgent;
+      const fundedDate = new Date(parseInt(agent.fundedAt) * 1000).toLocaleDateString();
       statusEl.innerHTML = `
         <div class="box">
           <div class="box-label">Status</div>
           <div class="box-value" style="color: var(--success)">✓ APPROVED & FUNDED</div>
         </div>
         <div class="box">
-          <div class="box-label">Amount</div>
+          <div class="box-label">Amount Funded</div>
           <div class="box-value">${formatUSD(parseInt(agent.fundedAmount) / 1e6)}</div>
+        </div>
+        <div class="box">
+          <div class="box-label">Funded On</div>
+          <div class="box-value">${fundedDate}</div>
+        </div>
+        <div class="box">
+          <div class="box-label">Revenue Paid</div>
+          <div class="box-value">${formatUSD(parseInt(agent.totalRevenuePaid) / 1e6)}</div>
         </div>
       `;
     } else {
-      // Pending or rejected
+      // Not funded - check if pending or rejected based on time
       const txTime = new Date(txData.timestamp).getTime();
       const hoursSince = (Date.now() - txTime) / (1000 * 60 * 60);
       
@@ -261,12 +275,20 @@ async function checkApplicationStatus(txHash) {
             <div class="box-label">Submitted</div>
             <div class="box-value">${timeAgo(txTime / 1000)}</div>
           </div>
+          <div class="box">
+            <div class="box-label">Expected Response</div>
+            <div class="box-value">Within 24 hours</div>
+          </div>
         `;
       } else {
         statusEl.innerHTML = `
           <div class="box">
             <div class="box-label">Status</div>
-            <div class="box-value" style="color: var(--text-muted)">No response (rejected or invalid)</div>
+            <div class="box-value" style="color: var(--text-muted)">NOT FUNDED</div>
+          </div>
+          <div class="box">
+            <div class="box-label">Note</div>
+            <div class="box-value">Application was not approved. You may apply again with improvements.</div>
           </div>
         `;
       }
