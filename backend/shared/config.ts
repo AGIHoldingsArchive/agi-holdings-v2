@@ -24,7 +24,12 @@ export const CONFIG = {
   // Application
   APPLICATION_FEE: '0.001', // ETH
   MIN_FUNDING_AMOUNT: 100, // USDC
-  MAX_FUNDING_AMOUNT: 1000, // USDC
+  MAX_FUNDING_AMOUNT: 500, // USDC - Hard limit per funding
+  
+  // Security
+  MAX_GAS_PRICE_GWEI: 50, // Don't transact if gas > 50 gwei
+  SLIPPAGE_PERCENT: 1, // 1% slippage tolerance
+  DATA_DIR: './data', // Persistence directory
   
   // Timing
   SCANNER_INTERVAL_MS: 60_000, // 1 minute

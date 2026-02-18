@@ -67,13 +67,21 @@ async function swapETHtoUSDC(amountETH: bigint): Promise<boolean> {
   try {
     const swapRouter = new ethers.Contract(SWAP_ROUTER, SWAP_ROUTER_ABI, wallet);
     
+    // Calculate minimum output with slippage protection
+    const ethPrice = await getETHPrice();
+    const expectedUSDC = Number(ethers.formatEther(amountETH)) * ethPrice;
+    const minOutput = expectedUSDC * (1 - CONFIG.SLIPPAGE_PERCENT / 100);
+    const minOutputWei = ethers.parseUnits(minOutput.toFixed(6), 6);
+    
+    console.log(`Expected: ~$${expectedUSDC.toFixed(2)}, Min accepted: $${minOutput.toFixed(2)}`);
+    
     const params = {
       tokenIn: WETH,
       tokenOut: CONFIG.USDC_ADDRESS,
       fee: 500, // 0.05% pool
       recipient: wallet.address,
       amountIn: amountETH,
-      amountOutMinimum: 0,
+      amountOutMinimum: minOutputWei, // Slippage protection
       sqrtPriceLimitX96: 0,
     };
     
@@ -140,6 +148,36 @@ async function getETHPrice(): Promise<number> {
 }
 
 /**
+ * Check if gas price is acceptable
+ */
+async function checkGasPrice(): Promise<boolean> {
+  const feeData = await provider.getFeeData();
+  const gasPriceGwei = Number(feeData.gasPrice || 0n) / 1e9;
+  console.log(`Current gas price: ${gasPriceGwei.toFixed(2)} gwei`);
+  
+  if (gasPriceGwei > CONFIG.MAX_GAS_PRICE_GWEI) {
+    console.error(`Gas price too high! Max: ${CONFIG.MAX_GAS_PRICE_GWEI} gwei`);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Validate funding amount
+ */
+function validateFundingAmount(amount: number): boolean {
+  if (amount < CONFIG.MIN_FUNDING_AMOUNT) {
+    console.error(`Funding amount $${amount} below minimum $${CONFIG.MIN_FUNDING_AMOUNT}`);
+    return false;
+  }
+  if (amount > CONFIG.MAX_FUNDING_AMOUNT) {
+    console.error(`Funding amount $${amount} exceeds maximum $${CONFIG.MAX_FUNDING_AMOUNT}`);
+    return false;
+  }
+  return true;
+}
+
+/**
  * Execute USDC transfer to funded agent
  */
 async function sendFunding(
@@ -147,6 +185,16 @@ async function sendFunding(
   amount: number
 ): Promise<string> {
   console.log(`Sending $${amount} USDC to ${recipientWallet}...`);
+  
+  // Validate funding amount (security)
+  if (!validateFundingAmount(amount)) {
+    throw new Error(`Funding amount $${amount} outside allowed range ($${CONFIG.MIN_FUNDING_AMOUNT}-$${CONFIG.MAX_FUNDING_AMOUNT})`);
+  }
+  
+  // Check gas price (security)
+  if (!await checkGasPrice()) {
+    throw new Error('Gas price too high, aborting transaction');
+  }
   
   // Ensure we have enough USDC (swap from ETH if needed)
   if (!await ensureUSDCBalance(amount)) {

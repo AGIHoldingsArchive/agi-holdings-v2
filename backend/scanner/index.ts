@@ -24,17 +24,34 @@ export function isFundedAgent(wallet: string): boolean {
   return fundedAgentWallets.has(wallet.toLowerCase());
 }
 
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
 // Track processed transactions to avoid duplicates
 const processedTxs = new Set<string>();
+const PROCESSED_TXS_FILE = path.join(CONFIG.DATA_DIR, 'processed-txs.json');
 
 // Load from persistent storage
 async function loadProcessedTxs(): Promise<void> {
-  // TODO: Load from database/file
+  try {
+    await fs.mkdir(CONFIG.DATA_DIR, { recursive: true });
+    const data = await fs.readFile(PROCESSED_TXS_FILE, 'utf-8');
+    const txs = JSON.parse(data);
+    txs.forEach((tx: string) => processedTxs.add(tx));
+    console.log(`Loaded ${processedTxs.size} processed transactions`);
+  } catch {
+    console.log('No existing processed transactions file, starting fresh');
+  }
 }
 
 async function saveProcessedTx(txHash: string): Promise<void> {
   processedTxs.add(txHash);
-  // TODO: Persist to database/file
+  try {
+    await fs.mkdir(CONFIG.DATA_DIR, { recursive: true });
+    await fs.writeFile(PROCESSED_TXS_FILE, JSON.stringify([...processedTxs], null, 2));
+  } catch (e) {
+    console.error('Failed to persist processed tx:', e);
+  }
 }
 
 /**

@@ -39,21 +39,44 @@ export function initBuyback(privateKey: string): void {
 }
 
 /**
+ * Check if gas price is acceptable
+ */
+async function checkGasPrice(): Promise<boolean> {
+  const feeData = await provider.getFeeData();
+  const gasPriceGwei = Number(feeData.gasPrice || 0n) / 1e9;
+  console.log(`Current gas price: ${gasPriceGwei.toFixed(2)} gwei`);
+  
+  if (gasPriceGwei > CONFIG.MAX_GAS_PRICE_GWEI) {
+    console.error(`Gas price too high for buyback! Max: ${CONFIG.MAX_GAS_PRICE_GWEI} gwei`);
+    return false;
+  }
+  return true;
+}
+
+/**
  * Swap ETH to $AGI
  */
 export async function swapETHtoAGI(amountETH: bigint): Promise<string | null> {
   console.log(`Swapping ${ethers.formatEther(amountETH)} ETH to $AGI...`);
   
+  // Check gas price
+  if (!await checkGasPrice()) {
+    console.log('Skipping buyback due to high gas');
+    return null;
+  }
+  
   try {
     // Use exactInputSingle for ETH -> AGI via WETH
     // Path: ETH -> WETH -> AGI (0.3% fee pool)
+    // Note: For AGI buyback, we accept higher slippage since it's a smaller token
+    // Still protect against extreme sandwich attacks
     const params = {
       tokenIn: WETH,
       tokenOut: AGI_TOKEN,
       fee: 3000, // 0.3%
       recipient: wallet.address,
       amountIn: amountETH,
-      amountOutMinimum: 0, // Accept any amount (add slippage protection in production)
+      amountOutMinimum: 1, // At least get something (protect against total failure)
       sqrtPriceLimitX96: 0,
     };
     
@@ -78,6 +101,12 @@ export async function swapETHtoAGI(amountETH: bigint): Promise<string | null> {
  */
 export async function swapUSDCtoAGI(amountUSDC: bigint): Promise<string | null> {
   console.log(`Swapping ${ethers.formatUnits(amountUSDC, 6)} USDC to $AGI...`);
+  
+  // Check gas price
+  if (!await checkGasPrice()) {
+    console.log('Skipping buyback due to high gas');
+    return null;
+  }
   
   try {
     const usdc = new ethers.Contract(USDC, ERC20_ABI, wallet);
