@@ -1,6 +1,6 @@
 # AGI HOLDINGS — COMPLETE SYSTEM STATE
 
-*Letzte Aktualisierung: 2026-02-19 11:05 UTC+4*
+*Letzte Aktualisierung: 2026-02-19 11:15 UTC+4*
 
 **Regel:** Diese Datei muss IMMER aktuell sein. Bei jedem Event updaten.
 
@@ -36,11 +36,21 @@
 | Key | Value |
 |-----|-------|
 | Code | `backend/twitter-bot/index.ts` |
+| Chart Generator | `backend/twitter-bot/chart-generator.ts` |
 | Run | `npm run twitter` |
 | Posts | 8/day (every 3h) |
 | Outreach | 48/day (2/hour) |
 | State | `twitter-state.json` |
 | Protocol | `twitter-protocol.md` |
+
+### Chart Settings
+| Key | Value |
+|-----|-------|
+| Dimensions | 1200×675 (Twitter 16:9) |
+| Style | Dark theme (#0a0a0a background) |
+| Font | Inter |
+| ETH Price Source | CoinGecko API (live) |
+| Balance Source | Blockscout API |
 
 ### GitHub
 | Key | Value |

@@ -131,19 +131,28 @@ We're open to collabs. DM @AGIHoldingsCEO to discuss.
 
 ## TREASURY CHART DESIGN
 
-**Template:** `agi-treasury-chart.html`
+**Generator:** `backend/twitter-bot/chart-generator.ts`
+
+**Dimensions:** 1200×675px (Twitter optimal 16:9)
 
 **Inhalt:**
-- AGI Holdings Logo/Name
-- Datum
-- Treasury Balance (groß)
+- AGI Holdings Logo/Name (top left)
+- Datum (top right)
+- Treasury Balance (groß, 80px font)
 - Stats: Agents Funded | Total Deployed | Revenue Share
 - CTA: "Want a piece of the treasury? apply-agiholdings.com"
 
 **Style:**
-- Schwarzer Hintergrund
-- Minimal, clean
-- Keine Emojis, keine Farben
+- Background: #0a0a0a (dark)
+- Card: #111111 gradient
+- Border: #222
+- Font: Inter
+- Keine Emojis, keine bunten Farben
+
+**Datenquellen:**
+- ETH Preis: CoinGecko API (live)
+- Wallet Balance: Blockscout API
+- Treasury Address: 0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D
 
 ---
 

@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-19T11:08:00+04:00",
+  "lastUpdated": "2026-02-19T11:15:00+04:00",
   
   "dayCounter": {
     "startDate": "2026-02-18",
@@ -8,11 +8,12 @@
   },
   
   "posts": {
-    "lastTreasuryPost": "2026-02-19T11:08:00+04:00",
+    "lastTreasuryPost": "2026-02-19T11:15:00+04:00",
+    "lastTreasuryTweetId": "2024382260485771563",
     "treasuryPostsTotal": 1,
     "lastEducationalPost": null,
     "educationalPostsToday": 0,
-    "lastPostTime": "2026-02-19T11:08:00+04:00",
+    "lastPostTime": "2026-02-19T11:15:00+04:00",
     "totalPostsToday": 1
   },
   
@@ -29,5 +30,14 @@
   
   "allTweets": [
     "Day 2. Treasury update."
-  ]
+  ],
+  
+  "chartSettings": {
+    "width": 1200,
+    "height": 675,
+    "format": "16:9",
+    "theme": "dark",
+    "ethPriceSource": "coingecko",
+    "balanceSource": "blockscout"
+  }
 }
