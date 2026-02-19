@@ -10,7 +10,8 @@
     "scanner": "npx tsx scanner/index.ts",
     "evaluator": "npx tsx evaluator/index.ts",
     "twitter": "npx tsx twitter-bot/index.ts",
-    "all": "concurrently \"npm run start\" \"npm run twitter\"",
+    "telegram": "npx tsx telegram-bot/index.ts",
+    "all": "concurrently \"npm run start\" \"npm run twitter\" \"npm run telegram\"",
     "build": "tsc"
   },
   "dependencies": {
