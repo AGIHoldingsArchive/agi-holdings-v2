@@ -9,14 +9,18 @@
     "dev": "npx tsx watch main.ts",
     "scanner": "npx tsx scanner/index.ts",
     "evaluator": "npx tsx evaluator/index.ts",
+    "twitter": "npx tsx twitter-bot/index.ts",
+    "all": "concurrently \"npm run start\" \"npm run twitter\"",
     "build": "tsc"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "concurrently": "^8.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "ethers": "^6.13.4",
     "express": "^4.18.2",
+    "puppeteer": "^21.0.0",
     "tsx": "^4.19.0",
     "twitter-api-v2": "^1.18.2"
   },
