@@ -325,20 +325,40 @@ async function checkMentions(state: TwitterState) {
 
       console.log(`[MENTION] @${author.username}: ${mention.text.substring(0, 100)}...`);
 
-      // Check if this looks like an application (has wallet or key terms)
+      // Check if this looks like a real application vs casual mention
       const text = mention.text.toLowerCase();
-      const isApplication = text.includes('0x') || 
-                          text.includes('funding') || 
-                          text.includes('apply') ||
-                          text.includes('agent') ||
-                          text.includes('built') ||
-                          text.includes('revenue');
+      
+      // MUST have wallet address - this is required for any real application
+      const hasWallet = /0x[a-fA-F0-9]{40}/.test(mention.text);
+      
+      // Strong application signals (structured format)
+      const hasStructuredFields = 
+        (text.includes('agent:') || text.includes('name:')) ||
+        (text.includes('description:') || text.includes('does:')) ||
+        (text.includes('revenue:') || text.includes('revenue model:'));
+      
+      // Explicit application intent
+      const hasExplicitIntent = 
+        text.includes('applying') ||
+        text.includes('application') ||
+        (text.includes('apply') && text.includes('funding')) ||
+        text.includes('requesting funding') ||
+        text.includes('need funding') ||
+        text.includes('want to apply');
+      
+      // It's an application if:
+      // 1. Has wallet address (required anyway), OR
+      // 2. Has structured fields (Agent:, Description:, Revenue:), OR
+      // 3. Has explicit "I want to apply" intent
+      const isApplication = hasWallet || hasStructuredFields || hasExplicitIntent;
 
       if (!isApplication) {
-        console.log('[INFO] Not an application, skipping');
+        console.log(`[INFO] Casual mention from @${author.username}, not an application`);
         processed.processed.push(mention.id);
         continue;
       }
+      
+      console.log(`[INFO] Detected application from @${author.username} (wallet: ${hasWallet}, structured: ${hasStructuredFields}, intent: ${hasExplicitIntent})`);
 
       // Parse application
       const app = parseApplication(mention.text, author.username);
