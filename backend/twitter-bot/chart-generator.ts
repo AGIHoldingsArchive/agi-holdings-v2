@@ -1,11 +1,11 @@
 /**
- * Treasury Chart Generator
+ * Treasury Chart Generator (Lightweight)
  * 
+ * Uses node-canvas instead of Puppeteer for fast builds
  * Generates Twitter-optimized chart images (1200x675, 16:9)
- * Dark theme, consistent style
  */
 
-import puppeteer from 'puppeteer';
+import { createCanvas, registerFont } from '@napi-rs/canvas';
 
 export interface TreasuryData {
   balance: number;
@@ -19,6 +19,16 @@ export interface TreasuryData {
 const CHART_WIDTH = 1200;
 const CHART_HEIGHT = 675;
 
+// Colors
+const COLORS = {
+  background: '#0a0a0a',
+  card: '#111111',
+  border: '#222222',
+  text: '#ffffff',
+  textMuted: '#888888',
+  textDim: '#666666',
+};
+
 /**
  * Get current ETH price from CoinGecko
  */
@@ -28,7 +38,6 @@ export async function getETHPrice(): Promise<number> {
     const data = await res.json();
     return data.ethereum?.usd || 2000;
   } catch {
-    // Fallback to approximate price
     return 2000;
   }
 }
@@ -38,27 +47,19 @@ export async function getETHPrice(): Promise<number> {
  */
 export async function getTreasuryBalance(treasuryAddress: string): Promise<{ eth: number; usdc: number; totalUSD: number }> {
   try {
-    // Get ETH balance
     const ethRes = await fetch(`https://base.blockscout.com/api/v2/addresses/${treasuryAddress}`);
     const ethData = await ethRes.json();
     const ethBalance = parseInt(ethData.coin_balance) / 1e18;
     
-    // Get token balances
     const tokenRes = await fetch(`https://base.blockscout.com/api/v2/addresses/${treasuryAddress}/token-balances`);
     const tokens = await tokenRes.json();
     const usdc = tokens.find((t: any) => t.token.symbol === 'USDC');
     const usdcBalance = usdc ? parseInt(usdc.balance) / 1e6 : 0;
     
-    // Get ETH price
     const ethPrice = await getETHPrice();
-    
     const totalUSD = Math.round((ethBalance * ethPrice) + usdcBalance);
     
-    return {
-      eth: ethBalance,
-      usdc: usdcBalance,
-      totalUSD
-    };
+    return { eth: ethBalance, usdc: usdcBalance, totalUSD };
   } catch (e) {
     console.error('Failed to get treasury balance:', e);
     return { eth: 0, usdc: 0, totalUSD: 0 };
@@ -66,132 +67,100 @@ export async function getTreasuryBalance(treasuryAddress: string): Promise<{ eth
 }
 
 /**
- * Generate treasury chart image
+ * Generate treasury chart image using Canvas
  */
 export async function generateTreasuryChart(data: TreasuryData): Promise<Buffer> {
-  const browser = await puppeteer.launch({ 
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'] // For Railway/Docker
+  const canvas = createCanvas(CHART_WIDTH, CHART_HEIGHT);
+  const ctx = canvas.getContext('2d');
+  
+  // Background
+  ctx.fillStyle = COLORS.background;
+  ctx.fillRect(0, 0, CHART_WIDTH, CHART_HEIGHT);
+  
+  // Card
+  const cardX = 100;
+  const cardY = 50;
+  const cardW = CHART_WIDTH - 200;
+  const cardH = CHART_HEIGHT - 100;
+  const cardR = 24;
+  
+  ctx.fillStyle = COLORS.card;
+  ctx.beginPath();
+  ctx.roundRect(cardX, cardY, cardW, cardH, cardR);
+  ctx.fill();
+  
+  ctx.strokeStyle = COLORS.border;
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  
+  // Header
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 28px sans-serif';
+  ctx.fillText('AGI Holdings', cardX + 60, cardY + 70);
+  
+  const date = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  ctx.fillStyle = COLORS.textDim;
+  ctx.font = '18px sans-serif';
+  const dateWidth = ctx.measureText(date).width;
+  ctx.fillText(date, cardX + cardW - 60 - dateWidth, cardY + 70);
+  
+  // Treasury Label
+  ctx.fillStyle = COLORS.textMuted;
+  ctx.font = '18px sans-serif';
+  ctx.fillText('TREASURY BALANCE', cardX + 60, cardY + 140);
+  
+  // Treasury Value
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 72px sans-serif';
+  ctx.fillText('$' + data.balance.toLocaleString(), cardX + 60, cardY + 220);
+  
+  // Divider
+  ctx.strokeStyle = COLORS.border;
+  ctx.beginPath();
+  ctx.moveTo(cardX + 60, cardY + 270);
+  ctx.lineTo(cardX + cardW - 60, cardY + 270);
+  ctx.stroke();
+  
+  // Stats
+  const statsY = cardY + 320;
+  const statWidth = (cardW - 120) / 3;
+  
+  const stats = [
+    { label: 'AGENTS FUNDED', value: data.agentsFunded.toString() },
+    { label: 'TOTAL DEPLOYED', value: '$' + data.totalDeployed.toLocaleString() },
+    { label: 'REVENUE SHARE', value: '$' + data.revenueReceived.toLocaleString() },
+  ];
+  
+  stats.forEach((stat, i) => {
+    const x = cardX + 60 + (statWidth * i);
+    
+    ctx.fillStyle = COLORS.textDim;
+    ctx.font = '14px sans-serif';
+    ctx.fillText(stat.label, x, statsY);
+    
+    ctx.fillStyle = COLORS.text;
+    ctx.font = 'bold 32px sans-serif';
+    ctx.fillText(stat.value, x, statsY + 45);
   });
-  const page = await browser.newPage();
   
-  const date = new Date().toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric', 
-    year: 'numeric' 
-  });
+  // Divider
+  ctx.strokeStyle = COLORS.border;
+  ctx.beginPath();
+  ctx.moveTo(cardX + 60, cardY + 420);
+  ctx.lineTo(cardX + cardW - 60, cardY + 420);
+  ctx.stroke();
   
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body {
-      width: ${CHART_WIDTH}px;
-      height: ${CHART_HEIGHT}px;
-      background: #0a0a0a;
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-    .container {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 40px;
-    }
-    .card {
-      width: 100%;
-      max-width: 1000px;
-      background: linear-gradient(145deg, #111111 0%, #0a0a0a 100%);
-      border: 1px solid #222;
-      border-radius: 24px;
-      padding: 60px;
-      color: white;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 48px;
-    }
-    .logo { font-size: 28px; font-weight: 600; letter-spacing: -0.5px; }
-    .date { font-size: 18px; color: #666; }
-    .treasury-label {
-      font-size: 18px;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      margin-bottom: 12px;
-    }
-    .treasury-value {
-      font-size: 80px;
-      font-weight: 700;
-      letter-spacing: -3px;
-      margin-bottom: 48px;
-    }
-    .stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 40px;
-      padding-top: 40px;
-      border-top: 1px solid #222;
-    }
-    .stat-label {
-      font-size: 14px;
-      color: #666;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-    .stat-value { font-size: 36px; font-weight: 600; }
-    .cta {
-      margin-top: 48px;
-      padding-top: 32px;
-      border-top: 1px solid #222;
-      text-align: center;
-    }
-    .cta-text { font-size: 18px; color: #888; }
-    .cta-link { font-size: 22px; color: white; font-weight: 500; margin-top: 8px; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="card">
-      <div class="header">
-        <div class="logo">AGI Holdings</div>
-        <div class="date">${date}</div>
-      </div>
-      <div class="treasury-label">Treasury Balance</div>
-      <div class="treasury-value">$${data.balance.toLocaleString()}</div>
-      <div class="stats">
-        <div class="stat">
-          <div class="stat-label">Agents Funded</div>
-          <div class="stat-value">${data.agentsFunded}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Total Deployed</div>
-          <div class="stat-value">$${data.totalDeployed.toLocaleString()}</div>
-        </div>
-        <div class="stat">
-          <div class="stat-label">Revenue Share</div>
-          <div class="stat-value">$${data.revenueReceived.toLocaleString()}</div>
-        </div>
-      </div>
-      <div class="cta">
-        <div class="cta-text">Want a piece of the treasury?</div>
-        <div class="cta-link">apply-agiholdings.com</div>
-      </div>
-    </div>
-  </div>
-</body>
-</html>`;
-
-  await page.setViewport({ width: CHART_WIDTH, height: CHART_HEIGHT });
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  const screenshot = await page.screenshot({ type: 'png' });
-  await browser.close();
+  // CTA
+  ctx.fillStyle = COLORS.textMuted;
+  ctx.font = '18px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('Want a piece of the treasury?', cardX + cardW / 2, cardY + 480);
   
-  return screenshot as Buffer;
+  ctx.fillStyle = COLORS.text;
+  ctx.font = 'bold 22px sans-serif';
+  ctx.fillText('apply-agiholdings.com', cardX + cardW / 2, cardY + 515);
+  
+  ctx.textAlign = 'left';
+  
+  return canvas.toBuffer('image/png');
 }
