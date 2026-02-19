@@ -1,9 +1,27 @@
 import { TwitterApi } from 'twitter-api-v2';
 import Anthropic from '@anthropic-ai/sdk';
+import { ethers } from 'ethers';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { sendTelegramMessage } from '../shared/telegram.js';
+
+// USDC on Base
+const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+const RPC_URL = 'https://mainnet.base.org';
+
+const ERC20_ABI = [
+  'function transfer(address to, uint256 amount) returns (bool)',
+  'function balanceOf(address owner) view returns (uint256)',
+  'function decimals() view returns (uint8)',
+];
+
+// Initialize wallet
+const provider = new ethers.JsonRpcProvider(RPC_URL);
+const wallet = process.env.TREASURY_PRIVATE_KEY 
+  ? new ethers.Wallet(process.env.TREASURY_PRIVATE_KEY, provider)
+  : null;
+const usdc = wallet ? new ethers.Contract(USDC_ADDRESS, ERC20_ABI, wallet) : null;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -164,6 +182,40 @@ function getMissingFields(app: ParsedApplication): string[] {
   return missing;
 }
 
+// Send USDC funding
+async function sendFunding(recipientWallet: string, amount: number): Promise<{ success: boolean; txHash?: string; error?: string }> {
+  if (!wallet || !usdc) {
+    return { success: false, error: 'Treasury wallet not configured' };
+  }
+
+  try {
+    console.log(`[FUNDING] Sending $${amount} USDC to ${recipientWallet}...`);
+    
+    // Check balance
+    const balance = await usdc.balanceOf(wallet.address);
+    const decimals = await usdc.decimals();
+    const required = ethers.parseUnits(amount.toString(), decimals);
+    
+    console.log(`[FUNDING] Treasury USDC balance: ${ethers.formatUnits(balance, decimals)}`);
+    
+    if (balance < required) {
+      return { success: false, error: `Insufficient USDC. Have: ${ethers.formatUnits(balance, decimals)}, Need: ${amount}` };
+    }
+    
+    // Send
+    const tx = await usdc.transfer(recipientWallet, required);
+    console.log(`[FUNDING] TX sent: ${tx.hash}`);
+    
+    await tx.wait();
+    console.log(`[FUNDING] TX confirmed`);
+    
+    return { success: true, txHash: tx.hash };
+  } catch (e: any) {
+    console.error(`[FUNDING ERROR] ${e.message}`);
+    return { success: false, error: e.message };
+  }
+}
+
 // Evaluate application with AI
 async function evaluateApplication(app: ParsedApplication, authorHandle: string): Promise<{ approved: boolean; reason: string; fundAmount?: number }> {
   const prompt = `You are evaluating an AI agent application for funding.
@@ -288,30 +340,41 @@ async function checkMentions(state: TwitterState) {
       const evaluation = await evaluateApplication(app, author.username);
 
       if (evaluation.approved) {
-        // APPROVED
+        // APPROVED - Send funding
         const agents = loadFundedAgents();
         const agentNumber = agents.length + 1;
+        const fundAmount = evaluation.fundAmount || 25;
 
-        const newAgent: FundedAgent = {
-          name: app.agentName || `Agent #${agentNumber}`,
-          wallet: app.wallet!,
-          twitter: `@${author.username}`,
-          description: app.description || '',
-          revenueModel: app.revenueModel || '',
-          github: app.github,
-          website: app.website,
-          fundedAt: new Date().toISOString(),
-          fundedAmount: evaluation.fundAmount || 25,
-          applicationTweetId: mention.id,
-        };
+        // Send USDC
+        const funding = await sendFunding(app.wallet!, fundAmount);
 
-        agents.push(newAgent);
-        saveFundedAgents(agents);
+        if (funding.success) {
+          const newAgent: FundedAgent = {
+            name: app.agentName || `Agent #${agentNumber}`,
+            wallet: app.wallet!,
+            twitter: `@${author.username}`,
+            description: app.description || '',
+            revenueModel: app.revenueModel || '',
+            github: app.github,
+            website: app.website,
+            fundedAt: new Date().toISOString(),
+            fundedAmount: fundAmount,
+            txHash: funding.txHash,
+            applicationTweetId: mention.id,
+          };
 
-        const approvalReply = `Approved. $${evaluation.fundAmount} USDC will be sent to ${app.wallet?.slice(0, 6)}...${app.wallet?.slice(-4)}\n\nWelcome to AGI Holdings. You're agent #${agentNumber}.\n\nWe take 10% of future revenue. Build something great.`;
-        await replyToTweet(mention.id, approvalReply);
+          agents.push(newAgent);
+          saveFundedAgents(agents);
 
-        await sendTelegramMessage(`✅ APPROVED: @${author.username}\n\nAgent: ${newAgent.name}\nAmount: $${evaluation.fundAmount} USDC\nWallet: ${app.wallet}\n\nReason: ${evaluation.reason}\n\n⚠️ Manual funding needed!`);
+          const approvalReply = `Approved. $${fundAmount} USDC sent to ${app.wallet?.slice(0, 6)}...${app.wallet?.slice(-4)}\n\nWelcome to AGI Holdings. You're agent #${agentNumber}.\n\nTX: basescan.org/tx/${funding.txHash}`;
+          await replyToTweet(mention.id, approvalReply);
+
+          await sendTelegramMessage(`✅ FUNDED: @${author.username}\n\nAgent: ${newAgent.name}\nAmount: $${fundAmount} USDC\nWallet: ${app.wallet}\nTX: ${funding.txHash}\n\nReason: ${evaluation.reason}`);
+        } else {
+          // Funding failed
+          await replyToTweet(mention.id, `Approved but funding failed. We'll retry shortly.\n\nError: ${funding.error}`);
+          await sendTelegramMessage(`⚠️ FUNDING FAILED: @${author.username}\n\nAmount: $${fundAmount}\nWallet: ${app.wallet}\nError: ${funding.error}\n\n⚠️ Manual funding needed!`);
+        }
 
       } else {
         // REJECTED
