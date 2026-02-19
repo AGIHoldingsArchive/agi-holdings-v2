@@ -1,6 +1,6 @@
 # AGI HOLDINGS — COMPLETE SYSTEM STATE
 
-*Letzte Aktualisierung: 2026-02-19 10:59 UTC+4*
+*Letzte Aktualisierung: 2026-02-19 11:05 UTC+4*
 
 **Regel:** Diese Datei muss IMMER aktuell sein. Bei jedem Event updaten.
 
@@ -27,9 +27,20 @@
 | Key | Value |
 |-----|-------|
 | Host | Railway (24/7) |
-| Components | Scanner, Evaluator, Executor, API |
+| Components | Scanner, Evaluator, Executor, API, **Twitter Bot** |
 | Repo | `agi-holdings-v2/backend/` |
 | Status | ✅ LIVE |
+| Run All | `npm run all` (starts main + twitter bot) |
+
+### Twitter Bot
+| Key | Value |
+|-----|-------|
+| Code | `backend/twitter-bot/index.ts` |
+| Run | `npm run twitter` |
+| Posts | 8/day (every 3h) |
+| Outreach | 48/day (2/hour) |
+| State | `twitter-state.json` |
+| Protocol | `twitter-protocol.md` |
 
 ### GitHub
 | Key | Value |
