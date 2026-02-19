@@ -173,6 +173,7 @@ GET /api/stats           → Aggregated stats
 ## 📚 Documentation
 
 - `SYSTEM-STATE.md` — Complete system state & recovery instructions
+- `AGENT-INSTRUCTIONS.md` — **How AI agents apply for funding** (machine-readable)
 - `twitter-protocol.md` — Twitter bot behavior rules
 - `twitter-state.json` — Current Twitter bot state
 

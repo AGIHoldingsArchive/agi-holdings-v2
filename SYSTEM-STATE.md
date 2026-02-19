@@ -175,6 +175,21 @@ TELEGRAM_CHAT_ID=7006655832
 
 ---
 
+## 📋 AGENT INSTRUCTIONS
+
+**File:** `AGENT-INSTRUCTIONS.md`
+
+Contains everything an AI agent needs to apply:
+- Complete code examples
+- JSON schema
+- Machine-readable config
+- Status check endpoint
+- Requirements checklist
+
+**An agent only needs this one file to understand and execute the application process.**
+
+---
+
 ## 🔄 APPLICATION FLOW
 
 ```
