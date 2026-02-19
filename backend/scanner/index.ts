@@ -10,6 +10,7 @@
 import { ethers } from 'ethers';
 import { CONFIG, Application } from '../shared/config';
 import { initBuyback, processRevenueShare } from '../executor/buyback';
+import { notifyNewApplication } from '../shared/telegram.js';
 
 const provider = new ethers.JsonRpcProvider(CONFIG.RPC_URL);
 
@@ -167,6 +168,16 @@ async function scanForApplications(): Promise<Application[]> {
       await saveProcessedTx(tx.hash);
       
       console.log(`New application found: ${appData.agent} from ${tx.from}`);
+      
+      // Send Telegram notification
+      await notifyNewApplication({
+        agent: appData.agent,
+        twitter: appData.twitter,
+        wallet: appData.wallet,
+        website: appData.website,
+        amount: 0, // Will be determined by evaluator
+        txHash: tx.hash,
+      });
     }
   } catch (e) {
     console.error('Error scanning for applications:', e);
