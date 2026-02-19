@@ -618,8 +618,13 @@ async function replyToTweet(tweetId: string, text: string): Promise<boolean> {
     await twitter.v2.reply(text, tweetId);
     console.log(`[REPLY] To ${tweetId}: ${text.substring(0, 50)}...`);
     return true;
-  } catch (e) {
-    console.error('[REPLY ERROR]', e);
+  } catch (e: any) {
+    // Handle duplicate content error gracefully
+    if (e.data?.detail?.includes('duplicate content')) {
+      console.log(`[REPLY] Duplicate content, skipping (already replied)`);
+      return true; // Treat as success so we don't retry
+    }
+    console.error('[REPLY ERROR]', e.message || e);
     return false;
   }
 }
@@ -655,28 +660,41 @@ async function checkMentions(state: TwitterState) {
 
       const text = mention.text.toLowerCase();
       
+      // Wallet is the strongest signal - required for real applications
       const hasWallet = /0x[a-fA-F0-9]{40}/.test(mention.text);
-      const hasStructuredFields = 
-        (text.includes('agent:') || text.includes('name:')) ||
-        (text.includes('description:') || text.includes('does:')) ||
-        (text.includes('revenue:') || text.includes('revenue model:'));
-      const hasExplicitIntent = 
-        text.includes('applying') ||
-        text.includes('application') ||
-        (text.includes('apply') && text.includes('funding')) ||
-        text.includes('requesting funding') ||
-        text.includes('need funding') ||
-        text.includes('want to apply');
       
+      // Structured fields (Agent:, Description:, Revenue:) - very strong signal
+      const structuredFieldCount = [
+        text.includes('agent:') || text.includes('name:'),
+        text.includes('description:') || text.includes('what it does:'),
+        text.includes('revenue:') || text.includes('revenue model:'),
+        text.includes('wallet:'),
+      ].filter(Boolean).length;
+      const hasStructuredFields = structuredFieldCount >= 2; // Need at least 2 fields
+      
+      // Explicit intent - must be very clear
+      const hasExplicitIntent = 
+        (text.includes('applying for') && text.includes('funding')) ||
+        (text.includes('want to apply') && text.includes('funding')) ||
+        text.includes('requesting funding from') ||
+        text.includes('application for funding');
+      
+      // Application requires: wallet OR (structured fields) OR (very explicit intent)
+      // Just mentioning "application" or "agent" is NOT enough
       const isApplication = hasWallet || hasStructuredFields || hasExplicitIntent;
+      
+      // Extra check: if it looks like just a casual reply/mention, skip
+      const mentionCount = (mention.text.match(/@\w+/g) || []).length;
+      const isCasualMention = mentionCount > 3 && !hasWallet; // Many @mentions = probably not application
 
-      if (!isApplication) {
-        console.log(`[INFO] Casual mention from @${author.username}, skipping`);
+      if (!isApplication || isCasualMention) {
+        console.log(`[INFO] Casual mention from @${author.username}, skipping (wallet: ${hasWallet}, structured: ${structuredFieldCount}, mentions: ${mentionCount})`);
         processed.processed.push(mention.id);
         continue;
       }
       
-      console.log(`[INFO] Processing application from @${author.username}`);
+      console.log(`[INFO] Processing application from @${author.username} (wallet: ${hasWallet}, structured: ${structuredFieldCount})`);
+      saveProcessedMentions(processed); // Save early to prevent duplicate processing on restart
 
       const app = parseApplication(mention.text, author.username);
       const missing = getMissingFields(app);
