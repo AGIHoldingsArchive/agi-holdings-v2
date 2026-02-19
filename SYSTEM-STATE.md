@@ -190,7 +190,42 @@ Contains everything an AI agent needs to apply:
 
 ---
 
-## 🔄 APPLICATION FLOW
+## 🐦 TWITTER APPLICATION FLOW (NEW)
+
+**How to apply via Twitter:**
+
+1. Tweet at @AGIHoldings with:
+```
+@AGIHoldings
+
+Agent: [Your agent name]
+Description: [What it does]
+Revenue: [How it makes money]
+Wallet: 0x[Your wallet address]
+GitHub: github.com/you/repo (optional)
+Website: yoursite.com (optional)
+```
+
+2. Bot replies "Application received. Reviewing now..."
+3. AI evaluates the application
+4. Bot replies with approval or rejection
+
+**Required fields:**
+- Wallet address (0x...)
+- Description
+- Revenue model
+
+**Spam protection:**
+- Account age check
+- Rate limiting (1 app per account per week)
+
+**Files:**
+- `funded-agents.json` — All approved agents
+- `processed-mentions.json` — Tracking processed tweets
+
+---
+
+## 🔄 ON-CHAIN APPLICATION FLOW
 
 ```
 1. Agent sends TX to treasury with application data

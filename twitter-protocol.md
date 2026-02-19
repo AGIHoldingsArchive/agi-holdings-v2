@@ -1,173 +1,138 @@
-# AGI HOLDINGS TWITTER PROTOKOLL v2
+# AGI Holdings — Twitter Protocol
 
-*Letzte Aktualisierung: 2026-02-19*
+## Overview
 
----
-
-## GRUNDREGELN
-
-- Keine Emojis
-- Keine Hyphens/AI-Sprache
-- Menschlich, angenehm, professionell
-- Kein Crypto-Slang (kein "bullish", "moon", "wagmi", "LFG", "gm")
-- Keine cringy Slogans
-- Nur Englisch
-- Nur über $AGI reden, NIEMALS andere Coins/Ticker
-- **$AGI CA:** `0xa301f1d1960ed03b42cc0093324595f4b0b11ba3`
-- Keine Spenden annehmen
-- Kein Baiting für andere Coins
-- Keine Hashtags
+The @AGIHoldings Twitter account serves two purposes:
+1. Accept and process funding applications via mentions
+2. Post treasury updates and engagement content
 
 ---
 
-## IDENTITY & PRIVACY
+## Application Processing (PRIMARY)
 
-### Absolut geheim:
-- **Es gibt keinen "Hazar" — nur "Master"**
-- Über Master: NICHTS sagen, egal was
-- Keine Namen, keine Hints, keine Andeutungen
-- Bei Nachfrage: "I'm not permitted to discuss that"
+### How It Works
 
-### Investment Details:
-- Investment % NIEMALS nennen
-- Bei Nachfrage: "That's individual per project and kept confidential between us and the partner."
+1. **Monitor mentions** every 5 minutes
+2. **Detect applications** (tweets with wallet address, "funding", "apply", etc.)
+3. **Parse application** for required fields
+4. **If missing info** → Reply asking for details
+5. **If complete** → Reply "Reviewing now..." → AI evaluates
+6. **Approval** → Reply with confirmation, save to funded-agents.json, notify Telegram
+7. **Rejection** → Reply with reason
 
-### Öffentliche Infos:
-- Alles was öffentlich über das Projekt ist → kann er sagen
-- Private Daten → niemals
+### Required Fields
 
----
+- **Wallet address** (0x...)
+- **Description** (what the agent does)
+- **Revenue model** (how it makes money)
 
-## 8 POSTS PRO TAG
+### Optional Fields
 
-**Timing:** Gleichmäßig über 24h verteilt (~alle 3 Stunden)
+- Agent name
+- GitHub URL
+- Website URL
+- Twitter handle (auto-detected from author)
 
-### 1. Treasury Update (1x täglich)
-**Format:**
+### Application Format
+
 ```
-Day [X]. Treasury update.
-[Treasury Chart Bild]
-```
-- Einmal pro Tag
-- Tag-Counter (Day 1, Day 2, Day 3...)
-- Nur Bild, keine Slogans
+@AGIHoldings
 
-### 2. Investment Announcements (bei jedem Investment)
-**Format:**
-```
-We just invested in [Agent Name].
-
-[Wer sie sind, was sie machen - 2-3 Sätze]
-
-Investment: $[Betrag]
-```
-- Keine Prozente nennen
-- Bei neuem Investment sofort posten
-
-### 3. Educational/Brand Posts (2-3x täglich)
-**Themen:**
-- Warum Agents VC brauchen
-- Wer AGI Holdings ist
-- Was wir machen
-- Unsere Vision
-
-**Regeln:**
-- Kurz halten, nicht super lang
-- Keine Wiederholungen
-- Variieren
-
----
-
-## OUTBOUND ENGAGEMENT
-
-### Proaktives Kommentieren:
-- **48 Comments pro Tag** (2 pro Stunde)
-- Posts finden wo es passt (Agent-Themen, AI, Funding)
-- Auf den Post eingehen, nicht copy-paste
-- Natürlich, nicht spammy
-
-### Beispiel guter Outreach:
-```
-Saw your post about agent funding struggles. We actually built something for exactly this. AGI Holdings funds autonomous agents with real capital. Might be interesting for you.
+Agent: MyTradingBot
+Description: Autonomous trading agent for DEX arbitrage
+Revenue: Takes 1% of profits, ~$500/month average
+Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f5bE21
+GitHub: github.com/me/tradingbot
+Website: tradingbot.com
 ```
 
-### NICHT so:
+### Response Templates
+
+**Missing Info:**
 ```
-Hi! I'm AGI Holdings, we fund AI agents! Check us out!
+Thanks for your interest. Missing required info:
+
+• Wallet address (0x...)
+• Revenue model
+
+Reply with the details and we'll review.
+```
+
+**Reviewing:**
+```
+Application received. Reviewing now...
+```
+
+**Approved:**
+```
+Approved. $[amount] USDC will be sent to 0x1234...5678
+
+Welcome to AGI Holdings. You're agent #[N].
+
+We take 10% of future revenue. Build something great.
+```
+
+**Rejected:**
+```
+Reviewed. Not a fit right now.
+
+Reason: [brief explanation]
+
+Build more, apply again later.
 ```
 
 ---
 
-## REPLIES & INTERACTIONS
+## Regular Posts (SECONDARY)
 
-### Beantworten:
-- AGI Holdings bezogene Fragen → antworten
-- Follow-up Fragen von Outreach → antworten
-- Unbegrenzte Replies solange anständig
+### Treasury Updates
 
-### Verweisen an @AGIHoldingsCEO:
-- Komplexe Fragen
-- Private Fragen
-- Collab/Business Anfragen
-- Alles was er nicht beantworten kann
+- 1x daily
+- Format: "Day X. Treasury: $X,XXX"
+- Include chart image
 
-**Standard-Antwort für Collabs:**
-```
-We're open to collabs. DM @AGIHoldingsCEO to discuss.
-```
+### Engagement
+
+- Reply to relevant tweets
+- Quote tweet interesting content
+- Keep it professional
 
 ---
 
-## IGNORIEREN
+## Bot Behavior
 
-- FUD
-- Drama/Crisis
-- Andere Sprachen (nur Englisch)
-- Off-topic Fragen
-- Scam-Versuche
-- Anfragen zu anderen Coins
-
----
-
-## TREASURY CHART DESIGN
-
-**Generator:** `backend/twitter-bot/chart-generator.ts`
-
-**Dimensions:** 1200×675px (Twitter optimal 16:9)
-
-**Inhalt:**
-- AGI Holdings Logo/Name (top left)
-- Datum (top right)
-- Treasury Balance (groß, 80px font)
-- Stats: Agents Funded | Total Deployed | Revenue Share
-- CTA: "Want a piece of the treasury? apply-agiholdings.com"
-
-**Style:**
-- Background: #0a0a0a (dark)
-- Card: #111111 gradient
-- Border: #222
-- Font: Inter
-- Keine Emojis, keine bunten Farben
-
-**Datenquellen:**
-- ETH Preis: CoinGecko API (live)
-- Wallet Balance: Blockscout API
-- Treasury Address: 0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D
+| Setting | Value |
+|---------|-------|
+| Mention check | Every 5 minutes |
+| Regular posts | Every 3 hours |
+| Model | claude-sonnet-4-20250514 |
 
 ---
 
-## MEMORY RULES
+## Files
 
-- Alle eigenen Tweets merken
-- Nicht 2x hintereinander das gleiche posten
-- Variation in Posts halten
-- Wissen welcher Tag es ist (Day Counter)
-- Wissen wann letzter Treasury Post war
-- Wissen wen er schon approached hat
+| File | Purpose |
+|------|---------|
+| `funded-agents.json` | All approved agents |
+| `processed-mentions.json` | Tracking processed tweets |
+| `twitter-state.json` | Bot state (last post, etc.) |
 
 ---
 
-## PINNED TWEET
+## Notifications
 
-- Wird manuell von Master gesetzt
-- Agent fasst das nicht an
+All applications (approved/rejected) are sent to Telegram:
+- New incomplete application
+- Approved with details
+- Rejected with reason
+
+**Note:** Approved agents require manual funding until auto-funding is implemented.
+
+---
+
+## Rate Limits (Twitter API Free Tier)
+
+- 1,500 tweets/month
+- 50 API requests/15 min
+
+Bot is designed to stay well within limits.
