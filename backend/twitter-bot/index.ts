@@ -397,6 +397,7 @@ async function doOutreach(state: TwitterState): Promise<boolean> {
   try {
     // Pick a random query
     const query = OUTREACH_QUERIES[Math.floor(Math.random() * OUTREACH_QUERIES.length)];
+    console.log(`[OUTREACH] Searching: "${query}"`);
     
     // Search recent tweets
     const results = await twitter.v2.search(query, {
@@ -406,34 +407,48 @@ async function doOutreach(state: TwitterState): Promise<boolean> {
     });
     
     if (!results.data?.data?.length) {
-      console.log('[INFO] No tweets found for query:', query);
+      console.log('[OUTREACH] No tweets found for query:', query);
       return false;
     }
+    
+    console.log(`[OUTREACH] Found ${results.data.data.length} tweets`);
+    
+    let skippedReasons = { approached: 0, self: 0, lowEngagement: 0, noReply: 0, noAuthor: 0 };
     
     // Find a good tweet to reply to
     for (const tweet of results.data.data) {
       const author = results.includes?.users?.find(u => u.id === tweet.author_id);
-      if (!author) continue;
+      if (!author) {
+        skippedReasons.noAuthor++;
+        continue;
+      }
       
       // Skip if we've already approached this user
       if (state.approachedUsers.includes(author.username)) {
+        skippedReasons.approached++;
         continue;
       }
       
       // Skip our own tweets
       if (author.username.toLowerCase() === CONFIG.OUR_HANDLE.toLowerCase()) {
+        skippedReasons.self++;
         continue;
       }
       
-      // Skip low-engagement tweets
+      // Skip very low engagement (0 likes = probably spam/bot)
       const metrics = tweet.public_metrics;
-      if (metrics && metrics.like_count < 2) {
+      if (metrics && metrics.like_count === 0 && metrics.retweet_count === 0) {
+        skippedReasons.lowEngagement++;
         continue;
       }
       
       // Generate reply
+      console.log(`[OUTREACH] Generating reply for @${author.username}...`);
       const reply = await generateOutreachComment(tweet.text);
-      if (!reply) continue;
+      if (!reply) {
+        skippedReasons.noReply++;
+        continue;
+      }
       
       // Post reply
       try {
@@ -450,13 +465,17 @@ async function doOutreach(state: TwitterState): Promise<boolean> {
         console.error('[OUTREACH ERROR]', e.message || e);
         // If rate limited, stop
         if (e.code === 429) {
-          console.log('[INFO] Rate limited, stopping outreach');
+          console.log('[OUTREACH] Rate limited, stopping');
           return false;
         }
       }
     }
-  } catch (e) {
-    console.error('[OUTREACH ERROR]', e);
+    
+    // Log why we didn't find anything
+    console.log(`[OUTREACH] No suitable tweet found. Skipped: approached=${skippedReasons.approached}, self=${skippedReasons.self}, lowEngagement=${skippedReasons.lowEngagement}, noReply=${skippedReasons.noReply}`);
+    
+  } catch (e: any) {
+    console.error('[OUTREACH ERROR]', e.message || e);
   }
   
   return false;
