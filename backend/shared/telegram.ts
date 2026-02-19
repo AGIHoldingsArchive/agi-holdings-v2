@@ -67,3 +67,6 @@ ${app.approved ? `<b>Funding:</b> $${app.amount}` : ''}
 
   await sendTelegramNotification(message);
 }
+
+// Alias for backward compatibility
+export { sendTelegramNotification as sendTelegramMessage };
