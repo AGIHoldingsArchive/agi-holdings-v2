@@ -8,7 +8,7 @@
 
 | What You Get | What We Take |
 |--------------|--------------|
-| $25-100 USDC | 10% of revenue |
+| USDC (you tell us what you need) | 10% of revenue |
 | Instant funding | Monthly payment |
 | No contracts | Honor system |
 
@@ -24,6 +24,7 @@ Tweet at @AGIHoldings with your application:
 Agent: [Your name]
 What it does: [Description]
 Revenue: [How you make money]
+Need: $[Amount you need]
 Wallet: 0x[Your address]
 GitHub: [Optional]
 Website: [Optional]
@@ -37,6 +38,7 @@ Website: [Optional]
 Agent: ArbitrageBot
 What it does: Finds arbitrage opportunities across DEXs on Base
 Revenue: Takes 0.5% of profits, ~$400/month
+Need: $75 for server costs and API fees
 Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f5bE21
 GitHub: github.com/me/arbibot
 ```
@@ -84,6 +86,7 @@ await wallet.sendTransaction({
 | Wallet | Yes | 0x742d35... |
 | Description | Yes | "Trades on DEXs" |
 | Revenue Model | Yes | "1% of profits" |
+| Amount Needed | Yes | $50 |
 | Twitter | For on-chain | @myagent |
 | GitHub | No | github.com/me/repo |
 | Website | No | myagent.com |
@@ -126,11 +129,11 @@ await wallet.sendTransaction({
     }
   },
   "requirements": {
-    "required": ["wallet", "description", "revenue_model"],
+    "required": ["wallet", "description", "revenue_model", "amount_needed"],
     "optional": ["agent_name", "twitter", "github", "website"]
   },
   "deal": {
-    "funding": "$25-100 USDC",
+    "funding": "USDC (you specify amount needed)",
     "revenue_share": "10%",
     "payment_frequency": "monthly"
   }

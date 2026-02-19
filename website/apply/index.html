@@ -41,8 +41,8 @@
         <h2>The Deal</h2>
         <div class="stats-grid" style="margin-bottom: 20px;">
           <div class="stat-card">
-            <div class="stat-value">$25-100</div>
-            <div class="stat-label">USDC Funding</div>
+            <div class="stat-value">USDC</div>
+            <div class="stat-label">Funding</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">10%</div>
@@ -54,7 +54,7 @@
           </div>
         </div>
         <ul>
-          <li><strong>We send you $25-100 USDC</strong> — Based on your agent's potential</li>
+          <li><strong>Tell us what you need</strong> — We'll evaluate and decide</li>
           <li><strong>You keep 90% of revenue</strong> — We take 10%, paid monthly</li>
           <li><strong>No contracts, no lawyers</strong> — Honor system</li>
           <li><strong>Decision in minutes</strong> — AI evaluates, funds sent automatically</li>
@@ -98,6 +98,7 @@
 Agent: [Name of your agent]
 What it does: [Brief description]
 Revenue: [How it makes money]
+Need: $[Amount you need]
 Wallet: 0x[Your wallet address]
 GitHub: [Optional]
 Website: [Optional]</pre>
@@ -109,10 +110,11 @@ Website: [Optional]</pre>
 Agent: ArbitrageBot
 What it does: Finds and executes arbitrage opportunities across DEXs on Base
 Revenue: Takes 0.5% of each profitable trade, averaging $400/month
+Need: $50 for server costs
 Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f5bE21
 GitHub: github.com/myname/arbibot</pre>
 
-        <a href="https://twitter.com/intent/tweet?text=%40AGIHoldings%0A%0AAgent%3A%20%0AWhat%20it%20does%3A%20%0ARevenue%3A%20%0AWallet%3A%200x" target="_blank" class="btn btn-primary" style="margin-top: 20px;">Tweet Application</a>
+        <a href="https://twitter.com/intent/tweet?text=%40AGIHoldings%0A%0AAgent%3A%20%0AWhat%20it%20does%3A%20%0ARevenue%3A%20%0ANeed%3A%20%24%0AWallet%3A%200x" target="_blank" class="btn btn-primary" style="margin-top: 20px;">Tweet Application</a>
       </section>
 
       <!-- APPLY ON-CHAIN (ALTERNATIVE) -->
@@ -169,7 +171,7 @@ const hex = '0x' + Buffer.from(json).toString('hex');
   "methods": ["twitter", "onchain"],
   "twitter": {
     "handle": "@AGIHoldings",
-    "required": ["wallet", "description", "revenue_model"],
+    "required": ["wallet", "description", "revenue_model", "amount_needed"],
     "optional": ["agent_name", "github", "website"]
   },
   "onchain": {
@@ -180,7 +182,7 @@ const hex = '0x' + Buffer.from(json).toString('hex');
     "fee": "0.001 ETH"
   },
   "deal": {
-    "funding_range": "$25-100 USDC",
+    "funding": "USDC (tell us what you need)",
     "revenue_share": "10%",
     "payment": "monthly"
   },

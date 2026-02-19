@@ -64,10 +64,11 @@ interface FundedAgent {
   twitter: string;
   description: string;
   revenueModel: string;
+  amountRequested: number;
+  fundedAmount: number;
   github?: string;
   website?: string;
   fundedAt: string;
-  fundedAmount: number;
   txHash?: string;
   applicationTweetId: string;
 }
@@ -128,6 +129,7 @@ interface ParsedApplication {
   wallet?: string;
   description?: string;
   revenueModel?: string;
+  amountNeeded?: number;
   twitter?: string;
   github?: string;
   website?: string;
@@ -150,6 +152,12 @@ function parseApplication(text: string, authorHandle: string): ParsedApplication
   const websiteMatch = text.match(/https?:\/\/(?!github\.com|x\.com|twitter\.com)[\w.-]+\.[a-z]{2,}/i);
   if (websiteMatch) app.website = websiteMatch[0];
 
+  // Extract amount needed (e.g., $50, $100, 50 USDC)
+  const amountMatch = text.match(/\$(\d+)|\b(\d+)\s*(?:usdc|usd|dollars?)/i);
+  if (amountMatch) {
+    app.amountNeeded = parseInt(amountMatch[1] || amountMatch[2]);
+  }
+
   // Try to extract structured fields
   const lines = text.split('\n');
   for (const line of lines) {
@@ -162,6 +170,10 @@ function parseApplication(text: string, authorHandle: string): ParsedApplication
     }
     if (lower.includes('revenue:') || lower.includes('revenue model:') || lower.includes('makes money:')) {
       app.revenueModel = line.split(':').slice(1).join(':').trim();
+    }
+    if (lower.includes('need:') || lower.includes('amount:') || lower.includes('requesting:')) {
+      const amountLine = line.match(/\$?(\d+)/);
+      if (amountLine) app.amountNeeded = parseInt(amountLine[1]);
     }
   }
 
@@ -179,6 +191,7 @@ function getMissingFields(app: ParsedApplication): string[] {
   if (!app.wallet) missing.push('Wallet address (0x...)');
   if (!app.description || app.description.length < 20) missing.push('Description of what your agent does');
   if (!app.revenueModel) missing.push('Revenue model');
+  if (!app.amountNeeded) missing.push('Amount needed (e.g., $50)');
   return missing;
 }
 
@@ -218,6 +231,9 @@ async function sendFunding(recipientWallet: string, amount: number): Promise<{ s
 
 // Evaluate application with AI
 async function evaluateApplication(app: ParsedApplication, authorHandle: string): Promise<{ approved: boolean; reason: string; fundAmount?: number }> {
+  const MAX_FUNDING = 250; // Internal max, not public
+  const requestedAmount = app.amountNeeded || 50;
+
   const prompt = `You are evaluating an AI agent application for funding.
 
 Application:
@@ -225,6 +241,7 @@ Application:
 - Twitter: @${authorHandle}
 - Description: ${app.description}
 - Revenue Model: ${app.revenueModel || 'Not specified'}
+- Amount Requested: $${requestedAmount}
 - Wallet: ${app.wallet}
 - GitHub: ${app.github || 'Not provided'}
 - Website: ${app.website || 'Not provided'}
@@ -233,12 +250,15 @@ Evaluate based on:
 1. Is there a clear working product or just an idea?
 2. Is the revenue model realistic?
 3. Does this seem legitimate (not a scam)?
+4. Is the requested amount reasonable for what they're building?
+
+Maximum we can fund: $${MAX_FUNDING}
 
 Respond with JSON only:
 {
   "approved": true/false,
   "reason": "Brief explanation (1-2 sentences)",
-  "fundAmount": 25-100 (only if approved, based on potential)
+  "fundAmount": number (if approved - can be their requested amount or adjusted based on your evaluation, max ${MAX_FUNDING})
 }`;
 
   try {
@@ -355,10 +375,11 @@ async function checkMentions(state: TwitterState) {
             twitter: `@${author.username}`,
             description: app.description || '',
             revenueModel: app.revenueModel || '',
+            amountRequested: app.amountNeeded || 50,
+            fundedAmount: fundAmount,
             github: app.github,
             website: app.website,
             fundedAt: new Date().toISOString(),
-            fundedAmount: fundAmount,
             txHash: funding.txHash,
             applicationTweetId: mention.id,
           };
