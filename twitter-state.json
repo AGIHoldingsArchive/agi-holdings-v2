@@ -1,22 +1,19 @@
 {
   "version": "2.0",
-  "createdAt": "2026-02-19T10:58:00+04:00",
-  "lastUpdated": "2026-02-19T10:58:00+04:00",
+  "lastUpdated": "2026-02-19T11:08:00+04:00",
   
   "dayCounter": {
     "startDate": "2026-02-18",
-    "currentDay": 2,
-    "note": "Day 1 was launch day (2026-02-18)"
+    "currentDay": 2
   },
   
   "posts": {
-    "lastTreasuryPost": null,
-    "treasuryPostsTotal": 0,
+    "lastTreasuryPost": "2026-02-19T11:08:00+04:00",
+    "treasuryPostsTotal": 1,
     "lastEducationalPost": null,
     "educationalPostsToday": 0,
-    "lastInvestmentAnnouncement": null,
-    "totalPostsToday": 0,
-    "lastPostTime": null
+    "lastPostTime": "2026-02-19T11:08:00+04:00",
+    "totalPostsToday": 1
   },
   
   "outreach": {
@@ -26,22 +23,11 @@
     "lastCommentTime": null
   },
   
-  "replies": {
-    "repliedToday": [],
-    "totalRepliesToday": 0
-  },
-  
-  "investments": {
-    "announced": [],
-    "pendingAnnouncement": []
-  },
-  
   "dailyReset": {
-    "lastResetDate": "2026-02-19",
-    "resetAtUTC": "00:00"
+    "lastResetDate": "2026-02-19"
   },
   
-  "allTweets": [],
-  
-  "notes": "This file persists across restarts. Agent must read this before any Twitter action."
+  "allTweets": [
+    "Day 2. Treasury update."
+  ]
 }
