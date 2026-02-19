@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { sendTelegramMessage } from '../shared/telegram.js';
+import { generateTreasuryChart, getTreasuryBalance, TreasuryData } from './chart-generator.js';
 
 // USDC on Base
 const USDC_ADDRESS = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
@@ -30,7 +31,13 @@ const CONFIG = {
   TREASURY: '0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D',
   OUR_HANDLE: 'AGIHoldings',
   CHECK_INTERVAL: 5 * 60 * 1000, // 5 minutes
-  POST_INTERVAL: 3 * 60 * 60 * 1000, // 3 hours for regular posts
+  
+  // Posting schedule
+  POSTS_PER_DAY: 8,
+  OUTREACH_PER_DAY: 48, // 2 per hour
+  
+  // Start date for day counter
+  START_DATE: '2026-02-18',
 };
 
 // Initialize clients
@@ -51,11 +58,23 @@ const FUNDED_AGENTS_FILE = path.join(__dirname, '../../funded-agents.json');
 const PROCESSED_MENTIONS_FILE = path.join(__dirname, '../../processed-mentions.json');
 
 interface TwitterState {
-  lastPostTime: number;
-  lastMentionCheck: number;
-  lastMentionId?: string;
-  postCount: number;
+  // Daily tracking
   day: string;
+  dayNumber: number;
+  
+  // Posts
+  postsToday: number;
+  lastPostTime: number;
+  lastTreasuryPost: string; // date string
+  educationalPostsToday: number;
+  
+  // Outreach
+  outreachToday: number;
+  lastOutreachTime: number;
+  approachedUsers: string[]; // usernames we've commented on (all time)
+  
+  // Mentions
+  lastMentionId?: string;
 }
 
 interface FundedAgent {
@@ -80,18 +99,39 @@ interface ProcessedMentions {
 
 function loadState(): TwitterState {
   try {
-    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+    const state = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
+    return {
+      day: state.day || new Date().toDateString(),
+      dayNumber: state.dayNumber || 1,
+      postsToday: state.postsToday || 0,
+      lastPostTime: state.lastPostTime || 0,
+      lastTreasuryPost: state.lastTreasuryPost || '',
+      educationalPostsToday: state.educationalPostsToday || 0,
+      outreachToday: state.outreachToday || 0,
+      lastOutreachTime: state.lastOutreachTime || 0,
+      approachedUsers: state.approachedUsers || [],
+      lastMentionId: state.lastMentionId,
+    };
   } catch {
     return {
-      lastPostTime: 0,
-      lastMentionCheck: 0,
-      postCount: 0,
       day: new Date().toDateString(),
+      dayNumber: 1,
+      postsToday: 0,
+      lastPostTime: 0,
+      lastTreasuryPost: '',
+      educationalPostsToday: 0,
+      outreachToday: 0,
+      lastOutreachTime: 0,
+      approachedUsers: [],
     };
   }
 }
 
 function saveState(state: TwitterState) {
+  // Keep approached users list manageable
+  if (state.approachedUsers.length > 5000) {
+    state.approachedUsers = state.approachedUsers.slice(-2500);
+  }
   fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
@@ -116,14 +156,316 @@ function loadProcessedMentions(): ProcessedMentions {
 }
 
 function saveProcessedMentions(data: ProcessedMentions) {
-  // Keep last 1000
   if (data.processed.length > 1000) {
     data.processed = data.processed.slice(-500);
   }
   fs.writeFileSync(PROCESSED_MENTIONS_FILE, JSON.stringify(data, null, 2));
 }
 
-// Parse application from tweet text
+function getDayNumber(): number {
+  const start = new Date(CONFIG.START_DATE);
+  const now = new Date();
+  const diff = now.getTime() - start.getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+}
+
+// ============================================
+// POSTING: Tweet a message
+// ============================================
+
+async function postTweet(text: string, mediaBuffer?: Buffer): Promise<string | null> {
+  try {
+    let mediaId: string | undefined;
+    
+    if (mediaBuffer) {
+      mediaId = await twitter.v1.uploadMedia(mediaBuffer, { mimeType: 'image/png' });
+    }
+    
+    const tweet = await twitter.v2.tweet({
+      text,
+      ...(mediaId && { media: { media_ids: [mediaId] } }),
+    });
+    
+    console.log(`[TWEET] Posted: ${text.substring(0, 50)}...`);
+    return tweet.data.id;
+  } catch (e: any) {
+    console.error('[TWEET ERROR]', e.message || e);
+    return null;
+  }
+}
+
+// ============================================
+// TREASURY UPDATE (1x/day with chart)
+// ============================================
+
+async function postTreasuryUpdate(state: TwitterState): Promise<boolean> {
+  const today = new Date().toDateString();
+  
+  // Already posted today
+  if (state.lastTreasuryPost === today) {
+    return false;
+  }
+  
+  console.log('[INFO] Posting treasury update...');
+  
+  try {
+    // Get treasury data
+    const balance = await getTreasuryBalance(CONFIG.TREASURY);
+    const agents = loadFundedAgents();
+    const totalDeployed = agents.reduce((sum, a) => sum + a.fundedAmount, 0);
+    
+    const data: TreasuryData = {
+      balance: Math.round(balance.totalUSD),
+      agentsFunded: agents.length,
+      totalDeployed: totalDeployed,
+      revenueReceived: 0, // TODO: track this
+      day: state.dayNumber,
+    };
+    
+    // Generate chart
+    const chartBuffer = await generateTreasuryChart(data);
+    
+    // Post tweet
+    const text = `Day ${state.dayNumber}. Treasury update.`;
+    const tweetId = await postTweet(text, chartBuffer);
+    
+    if (tweetId) {
+      state.lastTreasuryPost = today;
+      state.postsToday++;
+      state.lastPostTime = Date.now();
+      saveState(state);
+      console.log(`[INFO] Treasury update posted (Day ${state.dayNumber})`);
+      return true;
+    }
+  } catch (e) {
+    console.error('[TREASURY ERROR]', e);
+  }
+  
+  return false;
+}
+
+// ============================================
+// EDUCATIONAL POSTS (AI-generated, 2-3x/day)
+// ============================================
+
+const EDUCATIONAL_TOPICS = [
+  'Why AI agents need venture capital just like startups',
+  'The difference between AI tools and autonomous AI agents',
+  'How AI agents generate revenue',
+  'What we look for in AI agent applications',
+  'The future of agent-to-agent economies',
+  'Why we fund AI agents on Base',
+  'How to build a fundable AI agent',
+  'Agent revenue models that actually work',
+  'The problem with centralized AI platforms',
+  'Why AI agents should own their own wallets',
+];
+
+async function generateEducationalPost(): Promise<string | null> {
+  const topic = EDUCATIONAL_TOPICS[Math.floor(Math.random() * EDUCATIONAL_TOPICS.length)];
+  
+  const prompt = `Write a tweet for @AGIHoldings about: "${topic}"
+
+Rules:
+- Max 280 characters
+- No emojis
+- No hashtags
+- No crypto slang (wagmi, bullish, moon, etc.)
+- Professional but human tone
+- Make it thought-provoking or educational
+- Don't directly promote, just share insight
+
+Return ONLY the tweet text, nothing else.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 100,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    
+    const text = (response.content[0] as { type: string; text: string }).text.trim();
+    
+    // Validate length
+    if (text.length > 280) {
+      return text.substring(0, 277) + '...';
+    }
+    
+    return text;
+  } catch (e) {
+    console.error('[AI ERROR]', e);
+    return null;
+  }
+}
+
+async function postEducational(state: TwitterState): Promise<boolean> {
+  // Max 3 educational posts per day
+  if (state.educationalPostsToday >= 3) {
+    return false;
+  }
+  
+  // Space out posts (at least 2 hours apart)
+  const hoursSinceLastPost = (Date.now() - state.lastPostTime) / (1000 * 60 * 60);
+  if (hoursSinceLastPost < 2) {
+    return false;
+  }
+  
+  console.log('[INFO] Generating educational post...');
+  
+  const text = await generateEducationalPost();
+  if (!text) return false;
+  
+  const tweetId = await postTweet(text);
+  if (tweetId) {
+    state.educationalPostsToday++;
+    state.postsToday++;
+    state.lastPostTime = Date.now();
+    saveState(state);
+    console.log(`[INFO] Educational post #${state.educationalPostsToday} posted`);
+    return true;
+  }
+  
+  return false;
+}
+
+// ============================================
+// OUTREACH COMMENTS (48/day = 2/hour)
+// ============================================
+
+const OUTREACH_QUERIES = [
+  'AI agent building',
+  'autonomous AI',
+  'AI agent revenue',
+  'building AI agents',
+  'AI agent startup',
+  'LLM agent',
+  'AI automation',
+  'crypto AI agent',
+];
+
+async function generateOutreachComment(originalTweet: string): Promise<string | null> {
+  const prompt = `You're replying to this tweet as @AGIHoldings (a VC fund for AI agents):
+
+"${originalTweet}"
+
+Write a reply that:
+- Is relevant to what they said
+- Adds value (insight, question, or perspective)
+- Is NOT salesy or promotional
+- Max 200 characters
+- No emojis
+- Professional but friendly
+
+If the tweet is not relevant to AI agents, respond with "SKIP".
+
+Return ONLY the reply text.`;
+
+  try {
+    const response = await anthropic.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 80,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    
+    const text = (response.content[0] as { type: string; text: string }).text.trim();
+    
+    if (text === 'SKIP' || text.length < 10) {
+      return null;
+    }
+    
+    return text;
+  } catch (e) {
+    console.error('[AI ERROR]', e);
+    return null;
+  }
+}
+
+async function doOutreach(state: TwitterState): Promise<boolean> {
+  // Max 48 outreach per day
+  if (state.outreachToday >= CONFIG.OUTREACH_PER_DAY) {
+    return false;
+  }
+  
+  // Space out (at least 25 minutes apart = ~2/hour)
+  const minsSinceLastOutreach = (Date.now() - state.lastOutreachTime) / (1000 * 60);
+  if (minsSinceLastOutreach < 25) {
+    return false;
+  }
+  
+  console.log('[INFO] Looking for outreach opportunities...');
+  
+  try {
+    // Pick a random query
+    const query = OUTREACH_QUERIES[Math.floor(Math.random() * OUTREACH_QUERIES.length)];
+    
+    // Search recent tweets
+    const results = await twitter.v2.search(query, {
+      max_results: 20,
+      'tweet.fields': ['author_id', 'created_at', 'public_metrics'],
+      expansions: ['author_id'],
+    });
+    
+    if (!results.data?.data?.length) {
+      console.log('[INFO] No tweets found for query:', query);
+      return false;
+    }
+    
+    // Find a good tweet to reply to
+    for (const tweet of results.data.data) {
+      const author = results.includes?.users?.find(u => u.id === tweet.author_id);
+      if (!author) continue;
+      
+      // Skip if we've already approached this user
+      if (state.approachedUsers.includes(author.username)) {
+        continue;
+      }
+      
+      // Skip our own tweets
+      if (author.username.toLowerCase() === CONFIG.OUR_HANDLE.toLowerCase()) {
+        continue;
+      }
+      
+      // Skip low-engagement tweets
+      const metrics = tweet.public_metrics;
+      if (metrics && metrics.like_count < 2) {
+        continue;
+      }
+      
+      // Generate reply
+      const reply = await generateOutreachComment(tweet.text);
+      if (!reply) continue;
+      
+      // Post reply
+      try {
+        await twitter.v2.reply(reply, tweet.id);
+        console.log(`[OUTREACH] Replied to @${author.username}: ${reply.substring(0, 50)}...`);
+        
+        state.approachedUsers.push(author.username);
+        state.outreachToday++;
+        state.lastOutreachTime = Date.now();
+        saveState(state);
+        
+        return true;
+      } catch (e: any) {
+        console.error('[OUTREACH ERROR]', e.message || e);
+        // If rate limited, stop
+        if (e.code === 429) {
+          console.log('[INFO] Rate limited, stopping outreach');
+          return false;
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[OUTREACH ERROR]', e);
+  }
+  
+  return false;
+}
+
+// ============================================
+// APPLICATION PROCESSING (mentions)
+// ============================================
+
 interface ParsedApplication {
   agentName?: string;
   wallet?: string;
@@ -140,25 +482,20 @@ function parseApplication(text: string, authorHandle: string): ParsedApplication
     twitter: `@${authorHandle}`,
   };
 
-  // Extract wallet (0x address)
   const walletMatch = text.match(/0x[a-fA-F0-9]{40}/);
   if (walletMatch) app.wallet = walletMatch[0];
 
-  // Extract GitHub
   const githubMatch = text.match(/github\.com\/[\w-]+\/[\w-]+/i);
   if (githubMatch) app.github = `https://${githubMatch[0]}`;
 
-  // Extract website
   const websiteMatch = text.match(/https?:\/\/(?!github\.com|x\.com|twitter\.com)[\w.-]+\.[a-z]{2,}/i);
   if (websiteMatch) app.website = websiteMatch[0];
 
-  // Extract amount needed (e.g., $50, $100, 50 USDC)
   const amountMatch = text.match(/\$(\d+)|\b(\d+)\s*(?:usdc|usd|dollars?)/i);
   if (amountMatch) {
     app.amountNeeded = parseInt(amountMatch[1] || amountMatch[2]);
   }
 
-  // Try to extract structured fields
   const lines = text.split('\n');
   for (const line of lines) {
     const lower = line.toLowerCase();
@@ -177,7 +514,6 @@ function parseApplication(text: string, authorHandle: string): ParsedApplication
     }
   }
 
-  // If no structured description, use the whole text minus the @mention
   if (!app.description) {
     app.description = text.replace(/@AGIHoldings/gi, '').trim().substring(0, 200);
   }
@@ -185,7 +521,6 @@ function parseApplication(text: string, authorHandle: string): ParsedApplication
   return app;
 }
 
-// Check if application has required fields
 function getMissingFields(app: ParsedApplication): string[] {
   const missing: string[] = [];
   if (!app.wallet) missing.push('Wallet address (0x...)');
@@ -195,7 +530,6 @@ function getMissingFields(app: ParsedApplication): string[] {
   return missing;
 }
 
-// Send USDC funding
 async function sendFunding(recipientWallet: string, amount: number): Promise<{ success: boolean; txHash?: string; error?: string }> {
   if (!wallet || !usdc) {
     return { success: false, error: 'Treasury wallet not configured' };
@@ -204,7 +538,6 @@ async function sendFunding(recipientWallet: string, amount: number): Promise<{ s
   try {
     console.log(`[FUNDING] Sending $${amount} USDC to ${recipientWallet}...`);
     
-    // Check balance
     const balance = await usdc.balanceOf(wallet.address);
     const decimals = await usdc.decimals();
     const required = ethers.parseUnits(amount.toString(), decimals);
@@ -215,7 +548,6 @@ async function sendFunding(recipientWallet: string, amount: number): Promise<{ s
       return { success: false, error: `Insufficient USDC. Have: ${ethers.formatUnits(balance, decimals)}, Need: ${amount}` };
     }
     
-    // Send
     const tx = await usdc.transfer(recipientWallet, required);
     console.log(`[FUNDING] TX sent: ${tx.hash}`);
     
@@ -229,9 +561,8 @@ async function sendFunding(recipientWallet: string, amount: number): Promise<{ s
   }
 }
 
-// Evaluate application with AI
 async function evaluateApplication(app: ParsedApplication, authorHandle: string): Promise<{ approved: boolean; reason: string; fundAmount?: number }> {
-  const MAX_FUNDING = 250; // Internal max, not public
+  const MAX_FUNDING = 250;
   const requestedAmount = app.amountNeeded || 50;
 
   const prompt = `You are evaluating an AI agent application for funding.
@@ -282,7 +613,6 @@ Respond with JSON only:
   }
 }
 
-// Reply to a tweet
 async function replyToTweet(tweetId: string, text: string): Promise<boolean> {
   try {
     await twitter.v2.reply(text, tweetId);
@@ -294,7 +624,6 @@ async function replyToTweet(tweetId: string, text: string): Promise<boolean> {
   }
 }
 
-// Process mentions
 async function checkMentions(state: TwitterState) {
   console.log('[INFO] Checking mentions...');
 
@@ -317,7 +646,6 @@ async function checkMentions(state: TwitterState) {
     const processed = loadProcessedMentions();
 
     for (const mention of mentions.data.data) {
-      // Skip if already processed
       if (processed.processed.includes(mention.id)) continue;
 
       const author = mentions.includes?.users?.find(u => u.id === mention.author_id);
@@ -325,19 +653,13 @@ async function checkMentions(state: TwitterState) {
 
       console.log(`[MENTION] @${author.username}: ${mention.text.substring(0, 100)}...`);
 
-      // Check if this looks like a real application vs casual mention
       const text = mention.text.toLowerCase();
       
-      // MUST have wallet address - this is required for any real application
       const hasWallet = /0x[a-fA-F0-9]{40}/.test(mention.text);
-      
-      // Strong application signals (structured format)
       const hasStructuredFields = 
         (text.includes('agent:') || text.includes('name:')) ||
         (text.includes('description:') || text.includes('does:')) ||
         (text.includes('revenue:') || text.includes('revenue model:'));
-      
-      // Explicit application intent
       const hasExplicitIntent = 
         text.includes('applying') ||
         text.includes('application') ||
@@ -346,26 +668,20 @@ async function checkMentions(state: TwitterState) {
         text.includes('need funding') ||
         text.includes('want to apply');
       
-      // It's an application if:
-      // 1. Has wallet address (required anyway), OR
-      // 2. Has structured fields (Agent:, Description:, Revenue:), OR
-      // 3. Has explicit "I want to apply" intent
       const isApplication = hasWallet || hasStructuredFields || hasExplicitIntent;
 
       if (!isApplication) {
-        console.log(`[INFO] Casual mention from @${author.username}, not an application`);
+        console.log(`[INFO] Casual mention from @${author.username}, skipping`);
         processed.processed.push(mention.id);
         continue;
       }
       
-      console.log(`[INFO] Detected application from @${author.username} (wallet: ${hasWallet}, structured: ${hasStructuredFields}, intent: ${hasExplicitIntent})`);
+      console.log(`[INFO] Processing application from @${author.username}`);
 
-      // Parse application
       const app = parseApplication(mention.text, author.username);
       const missing = getMissingFields(app);
 
       if (missing.length > 0) {
-        // Ask for missing info
         const reply = `Thanks for your interest. Missing required info:\n\n${missing.map(m => `• ${m}`).join('\n')}\n\nReply with the details and we'll review.`;
         await replyToTweet(mention.id, reply);
         processed.processed.push(mention.id);
@@ -374,18 +690,15 @@ async function checkMentions(state: TwitterState) {
         continue;
       }
 
-      // Evaluate
       await replyToTweet(mention.id, 'Application received. Reviewing now...');
 
       const evaluation = await evaluateApplication(app, author.username);
 
       if (evaluation.approved) {
-        // APPROVED - Send funding
         const agents = loadFundedAgents();
         const agentNumber = agents.length + 1;
         const fundAmount = evaluation.fundAmount || 25;
 
-        // Send USDC
         const funding = await sendFunding(app.wallet!, fundAmount);
 
         if (funding.success) {
@@ -412,13 +725,10 @@ async function checkMentions(state: TwitterState) {
 
           await sendTelegramMessage(`✅ FUNDED: @${author.username}\n\nAgent: ${newAgent.name}\nAmount: $${fundAmount} USDC\nWallet: ${app.wallet}\nTX: ${funding.txHash}\n\nReason: ${evaluation.reason}`);
         } else {
-          // Funding failed
           await replyToTweet(mention.id, `Approved but funding failed. We'll retry shortly.\n\nError: ${funding.error}`);
           await sendTelegramMessage(`⚠️ FUNDING FAILED: @${author.username}\n\nAmount: $${fundAmount}\nWallet: ${app.wallet}\nError: ${funding.error}\n\n⚠️ Manual funding needed!`);
         }
-
       } else {
-        // REJECTED
         processed.rejected[mention.id] = evaluation.reason;
 
         const rejectReply = `Reviewed. Not a fit right now.\n\nReason: ${evaluation.reason}\n\nBuild more, apply again later.`;
@@ -429,12 +739,10 @@ async function checkMentions(state: TwitterState) {
 
       processed.processed.push(mention.id);
       
-      // Update last mention ID
       if (!state.lastMentionId || mention.id > state.lastMentionId) {
         state.lastMentionId = mention.id;
       }
 
-      // Small delay between processing
       await new Promise(r => setTimeout(r, 2000));
     }
 
@@ -446,46 +754,51 @@ async function checkMentions(state: TwitterState) {
   }
 }
 
-// Regular posting (treasury updates, engagement)
-async function regularPost(state: TwitterState) {
-  const now = Date.now();
-  if (now - state.lastPostTime < CONFIG.POST_INTERVAL) return;
+// ============================================
+// MAIN LOOP
+// ============================================
 
-  // Only post treasury updates for now
-  // Outreach commented out to focus on mentions
-  
-  console.log('[INFO] Regular post cycle...');
-  state.lastPostTime = now;
-  saveState(state);
-}
-
-// Main loop
 async function main() {
   console.log('');
   console.log('╔═══════════════════════════════════════════════════════╗');
   console.log('║                                                       ║');
   console.log('║           AGI Holdings Twitter Bot                    ║');
-  console.log('║         Now accepting Twitter applications           ║');
+  console.log('║         Autonomous posting + applications             ║');
   console.log('║                                                       ║');
   console.log('╚═══════════════════════════════════════════════════════╝');
   console.log('');
 
   const state = loadState();
 
-  // Reset daily count
+  // Reset daily counts
   const today = new Date().toDateString();
   if (state.day !== today) {
+    console.log('[INFO] New day, resetting counts');
     state.day = today;
-    state.postCount = 0;
+    state.dayNumber = getDayNumber();
+    state.postsToday = 0;
+    state.educationalPostsToday = 0;
+    state.outreachToday = 0;
+    saveState(state);
   }
+  
+  console.log(`[INFO] Day ${state.dayNumber} | Posts: ${state.postsToday}/${CONFIG.POSTS_PER_DAY} | Outreach: ${state.outreachToday}/${CONFIG.OUTREACH_PER_DAY}`);
 
-  // Check mentions every cycle
+  // 1. Check mentions (applications)
   await checkMentions(state);
 
-  // Regular posts (treasury updates)
-  await regularPost(state);
+  // 2. Treasury update (1x/day)
+  await postTreasuryUpdate(state);
 
-  console.log('[INFO] Next check in 5 minutes...');
+  // 3. Educational posts (2-3x/day)
+  if (state.postsToday < CONFIG.POSTS_PER_DAY) {
+    await postEducational(state);
+  }
+
+  // 4. Outreach comments (48/day)
+  await doOutreach(state);
+
+  console.log('[INFO] Next cycle in 5 minutes...');
   setTimeout(main, CONFIG.CHECK_INTERVAL);
 }
 
