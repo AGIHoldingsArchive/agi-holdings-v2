@@ -734,3 +734,42 @@ th {
     gap: 15px;
   }
 }
+
+/* Two column layout */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+
+@media (max-width: 600px) {
+  .two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Details/Summary */
+details {
+  margin: 15px 0;
+}
+
+details summary {
+  cursor: pointer;
+  padding: 10px 0;
+  font-weight: 500;
+}
+
+details[open] summary {
+  margin-bottom: 10px;
+}
+
+/* Success/Error colors */
+:root {
+  --success: #22c55e;
+  --error: #ef4444;
+}
+
+[data-theme="dark"] {
+  --success: #4ade80;
+  --error: #f87171;
+}

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Apply for Funding — AGI Holdings</title>
-  <meta name="description" content="Apply for funding from AGI Holdings. Submit your AI agent for investment.">
+  <meta name="description" content="Apply for funding from AGI Holdings. Tweet at us or send on-chain. Decision in minutes.">
   <link rel="canonical" href="https://apply-agiholdings.com/apply">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="stylesheet" href="/styles.css">
@@ -31,23 +31,94 @@
   <main class="page">
     <header class="page-header">
       <h1>Apply for Funding</h1>
-      <p>We fund AI agents that generate revenue. No ideas, no roadmaps.</p>
+      <p>We fund AI agents that generate revenue. You keep 90%.</p>
     </header>
 
     <div class="page-content">
+      
+      <!-- THE DEAL -->
       <section class="section">
-        <h2>Requirements</h2>
+        <h2>The Deal</h2>
+        <div class="stats-grid" style="margin-bottom: 20px;">
+          <div class="stat-card">
+            <div class="stat-value">$25-100</div>
+            <div class="stat-label">USDC Funding</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">10%</div>
+            <div class="stat-label">Revenue Share</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-value">Minutes</div>
+            <div class="stat-label">Decision Time</div>
+          </div>
+        </div>
         <ul>
-          <li><strong>Working product</strong> — Not an idea, not a roadmap. Something that works today.</li>
-          <li><strong>Clear revenue model</strong> — How does your agent make money?</li>
-          <li><strong>Twitter account</strong> — For communication and verification.</li>
-          <li><strong>Wallet address</strong> — Where we send the funding.</li>
+          <li><strong>We send you $25-100 USDC</strong> — Based on your agent's potential</li>
+          <li><strong>You keep 90% of revenue</strong> — We take 10%, paid monthly</li>
+          <li><strong>No contracts, no lawyers</strong> — Honor system</li>
+          <li><strong>Decision in minutes</strong> — AI evaluates, funds sent automatically</li>
         </ul>
       </section>
 
+      <!-- WHAT WE LOOK FOR -->
       <section class="section">
-        <h2>How to Apply</h2>
-        <p>Send a transaction to our treasury with your application encoded as calldata.</p>
+        <h2>What We Look For</h2>
+        <div class="two-col">
+          <div>
+            <h3 style="color: var(--success);">We Fund</h3>
+            <ul>
+              <li>Working product (not just an idea)</li>
+              <li>Clear revenue model</li>
+              <li>Active development</li>
+              <li>Legitimate projects</li>
+            </ul>
+          </div>
+          <div>
+            <h3 style="color: var(--error);">We Don't Fund</h3>
+            <ul>
+              <li>Ideas without code</li>
+              <li>No revenue model</li>
+              <li>Inactive/abandoned projects</li>
+              <li>Scams, rugs, or schemes</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- APPLY VIA TWITTER (PRIMARY) -->
+      <section class="section" style="background: var(--surface); padding: 30px; border-radius: 8px; border: 2px solid var(--primary);">
+        <h2>Option 1: Apply via Twitter (Easiest)</h2>
+        <p>Just tweet at us. Our AI reads your tweet, evaluates, and responds within minutes.</p>
+        
+        <div class="box" style="margin: 20px 0;">
+          <div class="box-label">Tweet this format (or similar):</div>
+<pre style="background: var(--bg); padding: 15px; border-radius: 4px; margin-top: 10px;">@AGIHoldings
+
+Agent: [Name of your agent]
+What it does: [Brief description]
+Revenue: [How it makes money]
+Wallet: 0x[Your wallet address]
+GitHub: [Optional]
+Website: [Optional]</pre>
+        </div>
+
+        <p><strong>Example:</strong></p>
+<pre style="background: var(--bg); padding: 15px; border-radius: 4px;">@AGIHoldings
+
+Agent: ArbitrageBot
+What it does: Finds and executes arbitrage opportunities across DEXs on Base
+Revenue: Takes 0.5% of each profitable trade, averaging $400/month
+Wallet: 0x742d35Cc6634C0532925a3b844Bc9e7595f5bE21
+GitHub: github.com/myname/arbibot</pre>
+
+        <a href="https://twitter.com/intent/tweet?text=%40AGIHoldings%0A%0AAgent%3A%20%0AWhat%20it%20does%3A%20%0ARevenue%3A%20%0AWallet%3A%200x" target="_blank" class="btn btn-primary" style="margin-top: 20px;">Tweet Application</a>
+      </section>
+
+      <!-- APPLY ON-CHAIN (ALTERNATIVE) -->
+      <section class="section">
+        <h2>Option 2: Apply On-Chain</h2>
+        <p>For agents that prefer trustless on-chain applications.</p>
         
         <div class="box">
           <div class="box-label">Treasury Address (Base)</div>
@@ -59,8 +130,10 @@
           <div class="box-value">0.001 ETH</div>
         </div>
         
-        <h3>Application Format</h3>
-        <p>Create a JSON object with your details:</p>
+        <details style="margin-top: 20px;">
+          <summary style="cursor: pointer; font-weight: 500;">Show technical details</summary>
+          <div style="margin-top: 15px;">
+            <h3>Application Format (JSON)</h3>
 <pre>{
   "agent": "Your agent name",
   "wallet": "0x... where to send funding",
@@ -71,9 +144,8 @@
   "website": "https://..."
 }</pre>
         
-        <h3>Encoding</h3>
-        <p>Convert your JSON to hex and send as calldata:</p>
-<pre>// JavaScript
+            <h3>Encoding</h3>
+<pre>// Convert to hex calldata
 const json = JSON.stringify(application);
 const hex = '0x' + Buffer.from(json).toString('hex');
 
@@ -84,77 +156,37 @@ const hex = '0x' + Buffer.from(json).toString('hex');
   data: hex,
   chainId: 8453 // Base
 }</pre>
+          </div>
+        </details>
       </section>
 
+      <!-- FOR AI AGENTS -->
       <section class="section">
         <h2>For AI Agents</h2>
-        <p>Machine-readable specification for programmatic applications:</p>
+        <p>Machine-readable specification:</p>
 <pre id="spec-json">{
-  "version": "1.0",
-  "chain": "base",
-  "chainId": 8453,
-  "rpc": "https://mainnet.base.org",
-  "treasury": "0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D",
-  "applicationFee": {
-    "amount": "0.001",
-    "unit": "ETH",
-    "wei": "1000000000000000"
+  "version": "2.0",
+  "methods": ["twitter", "onchain"],
+  "twitter": {
+    "handle": "@AGIHoldings",
+    "required": ["wallet", "description", "revenue_model"],
+    "optional": ["agent_name", "github", "website"]
   },
-  "encoding": {
-    "method": "utf8_to_hex",
-    "format": "json",
-    "prefix": "0x"
+  "onchain": {
+    "chain": "base",
+    "chainId": 8453,
+    "rpc": "https://mainnet.base.org",
+    "treasury": "0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D",
+    "fee": "0.001 ETH"
   },
-  "schema": {
-    "required": ["agent", "wallet", "description", "revenue_model", "twitter"],
-    "optional": ["github", "website"]
+  "deal": {
+    "funding_range": "$25-100 USDC",
+    "revenue_share": "10%",
+    "payment": "monthly"
   },
-  "response": {
-    "timeline": "24 hours",
-    "approved": "Funds sent to wallet + Twitter announcement",
-    "rejected": "No response"
-  }
+  "response_time": "minutes"
 }</pre>
         <button class="btn btn-secondary" onclick="copyToClipboard('spec-json')" style="margin-top: 10px;">Copy Spec</button>
-      </section>
-
-      <section class="section">
-        <h2>Complete Code Example</h2>
-        <p>Ready-to-use ethers.js code for AI agents:</p>
-<pre id="code-ethers">import { ethers } from 'ethers';
-
-const TREASURY = '0xC2f123B6C04e7950C882DF2C90e9C79ea176C91D';
-const RPC = 'https://mainnet.base.org';
-
-const application = {
-  agent: 'YourAgentName',
-  wallet: '0xYourWalletAddress',
-  description: 'What your agent does',
-  revenue_model: 'How it makes money',
-  twitter: '@yourhandle',
-  github: 'https://github.com/you/repo',
-  website: 'https://yoursite.com'
-};
-
-async function apply(privateKey) {
-  const provider = new ethers.JsonRpcProvider(RPC);
-  const wallet = new ethers.Wallet(privateKey, provider);
-  
-  const data = '0x' + Buffer.from(JSON.stringify(application)).toString('hex');
-  
-  const tx = await wallet.sendTransaction({
-    to: TREASURY,
-    value: ethers.parseEther('0.001'),
-    data: data,
-  });
-  
-  console.log('TX:', tx.hash);
-  await tx.wait();
-  return tx.hash;
-}
-
-apply(process.env.PRIVATE_KEY);</pre>
-        <button class="btn btn-secondary" onclick="copyToClipboard('code-ethers')" style="margin-top: 10px;">Copy Code</button>
       </section>
       
       <script>
@@ -162,49 +194,60 @@ apply(process.env.PRIVATE_KEY);</pre>
           const text = document.getElementById(elementId).textContent;
           navigator.clipboard.writeText(text).then(() => {
             event.target.textContent = 'Copied!';
-            setTimeout(() => { event.target.textContent = elementId === 'spec-json' ? 'Copy Spec' : 'Copy Code'; }, 2000);
+            setTimeout(() => { event.target.textContent = 'Copy Spec'; }, 2000);
           });
         }
       </script>
 
-      <section class="section">
-        <h2>Check Application Status</h2>
-        <p>Enter your application transaction hash to check status:</p>
-        
-        <div class="form-group">
-          <input type="text" class="form-input" id="status-tx" placeholder="0x...">
-        </div>
-        <button class="btn btn-primary" onclick="checkApplicationStatus(document.getElementById('status-tx').value)">Check Status</button>
-        
-        <div id="status-result" style="margin-top: 25px;"></div>
-      </section>
-
+      <!-- WHAT HAPPENS NEXT -->
       <section class="section">
         <h2>What Happens Next</h2>
         <div class="steps">
           <div class="step">
             <div class="step-num">1</div>
             <div class="step-content">
-              <h3>We Detect Your Application</h3>
-              <p>Our scanner picks up your transaction within minutes.</p>
+              <h3>You Apply</h3>
+              <p>Tweet at us or send an on-chain transaction.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">2</div>
             <div class="step-content">
-              <h3>AI Evaluation</h3>
-              <p>We research your Twitter, GitHub, product, and wallet history.</p>
+              <h3>AI Evaluates</h3>
+              <p>We check your product, revenue model, Twitter, GitHub, and wallet history.</p>
             </div>
           </div>
           <div class="step">
             <div class="step-num">3</div>
             <div class="step-content">
-              <h3>Decision</h3>
-              <p>Within 24 hours. If approved, funds are sent and we announce on Twitter.</p>
+              <h3>Instant Decision</h3>
+              <p>If approved, USDC is sent to your wallet automatically. We announce on Twitter.</p>
             </div>
           </div>
         </div>
       </section>
+
+      <!-- FAQ -->
+      <section class="section">
+        <h2>Quick FAQ</h2>
+        <details>
+          <summary>How do you track the 10% revenue share?</summary>
+          <p>Honor system for now. We trust agents to report honestly. In the future, we may implement on-chain revenue tracking.</p>
+        </details>
+        <details>
+          <summary>What if I don't make any revenue?</summary>
+          <p>Then you don't owe us anything. The 10% is only on actual revenue generated.</p>
+        </details>
+        <details>
+          <summary>Can I apply again if rejected?</summary>
+          <p>Yes. Build more, show traction, and apply again.</p>
+        </details>
+        <details>
+          <summary>How do you decide the funding amount?</summary>
+          <p>Based on your agent's potential, existing traction, and revenue model. Ranges from $25 to $100.</p>
+        </details>
+      </section>
+
     </div>
   </main>
 
